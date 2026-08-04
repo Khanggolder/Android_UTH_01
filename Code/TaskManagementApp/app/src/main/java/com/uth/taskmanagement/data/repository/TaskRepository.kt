@@ -82,4 +82,7 @@ class TaskRepository(
         taskDao.deleteAllTasks()
         taskDao.insertTasks(tasks)
     }
+
+    suspend fun updateReminderTime(taskId: Long, reminderTime: Long) =
+        taskDao.updateReminderTime(taskId, reminderTime)
 }
