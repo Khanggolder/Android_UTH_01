@@ -1,6 +1,8 @@
 package com.uth.taskmanagement.ui.tasklist
 
 import com.uth.taskmanagement.data.model.TaskEntity
+import com.uth.taskmanagement.utils.TaskDueDateFilter
+import com.uth.taskmanagement.utils.TaskPriorityFilter
 import com.uth.taskmanagement.utils.TaskSortOption
 import com.uth.taskmanagement.utils.TaskStatusFilter
 
@@ -23,7 +25,9 @@ sealed class TaskListUiState {
     data class Success(
         val tasks: List<TaskEntity>,
         val overdueTaskIds: Set<Long>,
-        val appliedFilter: TaskStatusFilter,
+        val appliedStatusFilter: TaskStatusFilter,
+        val appliedPriorityFilter: TaskPriorityFilter,
+        val appliedDueDateFilter: TaskDueDateFilter,
         val appliedSort: TaskSortOption
     ) : TaskListUiState()
 
@@ -34,7 +38,9 @@ sealed class TaskListUiState {
      */
     data class Empty(
         val isBecauseOfFilter: Boolean,
-        val appliedFilter: TaskStatusFilter
+        val appliedStatusFilter: TaskStatusFilter,
+        val appliedPriorityFilter: TaskPriorityFilter,
+        val appliedDueDateFilter: TaskDueDateFilter
     ) : TaskListUiState()
 
     /** Co loi khi doc du lieu (vi du Room throw exception). */

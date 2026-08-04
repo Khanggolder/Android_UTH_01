@@ -1,7 +1,9 @@
 package com.uth.taskmanagement.ui.tasklist
 
 import com.uth.taskmanagement.data.model.TaskEntity
+import com.uth.taskmanagement.utils.TaskDueDateFilter
 import com.uth.taskmanagement.utils.TaskFilterSortUtils
+import com.uth.taskmanagement.utils.TaskPriorityFilter
 import com.uth.taskmanagement.utils.TaskSortOption
 import com.uth.taskmanagement.utils.TaskStatusFilter
 
@@ -17,21 +19,31 @@ object TaskListStateMapper {
     fun map(
         allTasks: List<TaskEntity>,
         statusFilter: TaskStatusFilter,
+        priorityFilter: TaskPriorityFilter,
+        dueDateFilter: TaskDueDateFilter,
         sortOption: TaskSortOption,
         currentTime: Long = System.currentTimeMillis()
     ): TaskListUiState {
         val visibleTasks = TaskFilterSortUtils.filterAndSort(
             tasks = allTasks,
             statusFilter = statusFilter,
+            priorityFilter = priorityFilter,
+            dueDateFilter = dueDateFilter,
             sortOption = sortOption,
             currentTime = currentTime
         )
 
         if (visibleTasks.isEmpty()) {
+            val hasAnyFilterApplied = statusFilter != TaskStatusFilter.ALL ||
+                    priorityFilter != TaskPriorityFilter.ALL ||
+                    dueDateFilter != TaskDueDateFilter.ALL
             val isBecauseOfFilter = allTasks.isNotEmpty() && statusFilter != TaskStatusFilter.ALL
+
             return TaskListUiState.Empty(
                 isBecauseOfFilter = isBecauseOfFilter,
-                appliedFilter = statusFilter
+                appliedStatusFilter = statusFilter,
+                appliedPriorityFilter = priorityFilter,
+                appliedDueDateFilter = dueDateFilter
             )
         }
 
@@ -43,7 +55,9 @@ object TaskListStateMapper {
         return TaskListUiState.Success(
             tasks = visibleTasks,
             overdueTaskIds = overdueIds,
-            appliedFilter = statusFilter,
+            appliedStatusFilter = statusFilter,
+            appliedPriorityFilter = priorityFilter,
+            appliedDueDateFilter = dueDateFilter,
             appliedSort = sortOption
         )
     }
