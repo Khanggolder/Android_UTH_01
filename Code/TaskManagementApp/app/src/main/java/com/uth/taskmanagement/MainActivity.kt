@@ -12,11 +12,12 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.uth.taskmanagement.databinding.ActivityMainBinding
+import com.uth.taskmanagement.notification.NotificationHelper
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
 
-    // Launcher xin quyền POST_NOTIFICATIONS (Android 13+)
+    // Xin quyền POST_NOTIFICATIONS (Android 13+)
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (isGranted) {
@@ -41,15 +42,13 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
-        // Xin quyền thông báo cho Android 13 (API 33) trở lên
+        // Tạo Notification Channel
+        NotificationHelper.createNotificationChannel(this)
+        // Xin quyền thông báo (Android 13+)
         requestNotificationPermission()
     }
 
-    /**
-     * Kiểm tra phiên bản Android và trạng thái quyền POST_NOTIFICATIONS.
-     * - Android < 13: quyền được cấp mặc định, không cần xin.
-     * - Android >= 13: kiểm tra và yêu cầu quyền nếu chưa được cấp.
-     */
+    // Xin quyền POST_NOTIFICATIONS nếu Android >= 13 và chưa được cấp
     private fun requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val permissionStatus = ContextCompat.checkSelfPermission(
