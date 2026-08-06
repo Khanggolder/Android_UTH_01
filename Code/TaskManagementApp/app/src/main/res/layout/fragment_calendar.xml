@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -16,45 +15,43 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingBottom="32dp">
+            android:paddingBottom="96dp">
 
-            <!-- Header -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:paddingHorizontal="24dp"
-                android:paddingTop="28dp"
-                android:paddingBottom="20dp">
+                android:paddingStart="20dp"
+                android:paddingTop="24dp"
+                android:paddingEnd="20dp"
+                android:paddingBottom="16dp">
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Lịch"
+                    android:text="Calendar"
+                    android:textColor="@color/text_primary"
                     android:textSize="30sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:textStyle="bold"
-                    android:textColor="@color/text_primary" />
+                    android:textStyle="bold" />
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="Xem công việc và lịch nhắc theo ngày"
-                    android:textSize="14sp"
-                    android:textColor="@color/text_secondary" />
+                    android:layout_marginTop="4dp"
+                    android:text="Review reminders and tasks by day."
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp" />
             </LinearLayout>
 
-            <!-- Calendar Card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="16dp"
+                app:cardBackgroundColor="@color/surface"
                 app:cardCornerRadius="24dp"
                 app:cardElevation="0dp"
-                app:strokeWidth="1dp"
                 app:strokeColor="@color/divider"
-                app:cardBackgroundColor="@color/surface">
+                app:strokeWidth="1dp">
 
                 <CalendarView
                     android:id="@+id/calendarView"
@@ -62,29 +59,26 @@
                     android:layout_height="wrap_content"
                     android:layout_margin="4dp"
                     android:theme="@style/CalendarViewCustom" />
-
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Selected date row -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="12dp"
                 android:gravity="center_vertical"
-                android:paddingHorizontal="20dp"
-                android:layout_marginTop="28dp"
-                android:layout_marginBottom="12dp">
+                android:orientation="horizontal"
+                android:paddingHorizontal="20dp">
 
                 <TextView
                     android:id="@+id/tvSelectedDate"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Hôm nay"
+                    android:text="Today"
+                    android:textColor="@color/text_primary"
                     android:textSize="18sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:textStyle="bold"
-                    android:textColor="@color/text_primary" />
+                    android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/tvTaskCount"
@@ -93,76 +87,73 @@
                     android:background="@drawable/bg_count_pill"
                     android:paddingHorizontal="12dp"
                     android:paddingVertical="4dp"
-                    android:text="0 việc"
-                    android:textSize="12sp"
-                    android:fontFamily="sans-serif-medium"
+                    android:text="0 tasks"
                     android:textColor="@color/accent"
-                    tools:text="3 việc" />
-
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    tools:text="3 tasks" />
             </LinearLayout>
 
-            <!-- Task list for selected day -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvTasksOfDay"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingHorizontal="16dp"
                 android:clipToPadding="false"
                 android:nestedScrollingEnabled="false"
+                android:paddingHorizontal="16dp"
                 tools:listitem="@layout/item_task_calendar" />
 
-            <!-- Empty state -->
             <LinearLayout
                 android:id="@+id/emptyState"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
+                android:layout_margin="16dp"
+                android:background="@drawable/bg_dashboard_card"
                 android:gravity="center"
-                android:paddingVertical="56dp"
+                android:orientation="vertical"
+                android:padding="28dp"
                 android:visibility="gone"
                 tools:visibility="visible">
 
                 <ImageView
                     android:layout_width="72dp"
                     android:layout_height="72dp"
-                    android:alpha="0.35"
+                    android:alpha="0.7"
                     android:src="@drawable/ic_calendar_empty"
                     app:tint="@color/text_secondary" />
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:text="Không có công việc nào"
-                    android:textAlignment="center"
-                    android:fontFamily="sans-serif-medium"
+                    android:gravity="center"
+                    android:text="No tasks for this day"
                     android:textColor="@color/text_primary"
-                    android:textSize="15sp" />
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="Chọn ngày khác hoặc thêm công việc mới"
-                    android:textAlignment="center"
+                    android:gravity="center"
+                    android:text="Select another date or add a task later."
                     android:textColor="@color/text_secondary"
                     android:textSize="13sp" />
             </LinearLayout>
-
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <!-- FAB thêm task nhanh từ Calendar -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAddTask"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="24dp"
+        android:contentDescription="Add task"
         android:src="@drawable/ic_add"
-        app:tint="@color/white"
         app:backgroundTint="@color/accent"
         app:elevation="4dp"
-        app:fabSize="normal" />
+        app:tint="@color/white" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

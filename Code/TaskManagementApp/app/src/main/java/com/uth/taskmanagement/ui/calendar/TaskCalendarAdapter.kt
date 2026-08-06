@@ -35,7 +35,7 @@ class TaskCalendarAdapter(
         fun bind(occurrence: TaskOccurrence) {
             val task = occurrence.task
             binding.tvTaskTitle.text = task.title
-            binding.tvTaskTime.text = SimpleDateFormat("HH:mm", Locale("vi"))
+            binding.tvTaskTime.text = SimpleDateFormat("HH:mm", Locale.getDefault())
                 .format(Date(occurrence.occurrenceDateTime))
 
             binding.priorityBar.setBackgroundResource(
@@ -49,9 +49,9 @@ class TaskCalendarAdapter(
             val isRecurring = task.recurrenceType != RecurrenceType.NONE
             binding.tvRecurringBadge.visibility = if (isRecurring) View.VISIBLE else View.GONE
             binding.tvRecurringBadge.text = when (task.recurrenceType) {
-                RecurrenceType.DAILY -> "🔁 Daily"
-                RecurrenceType.WEEKLY -> "🔁 Weekly"
-                RecurrenceType.MONTHLY -> "🔁 Monthly"
+                RecurrenceType.DAILY -> "Daily"
+                RecurrenceType.WEEKLY -> "Weekly"
+                RecurrenceType.MONTHLY -> "Monthly"
                 RecurrenceType.NONE -> ""
             }
 
@@ -67,7 +67,6 @@ class TaskCalendarAdapter(
         override fun areItemsTheSame(old: TaskOccurrence, new: TaskOccurrence) =
             old.task.id == new.task.id && old.occurrenceDateTime == new.occurrenceDateTime
 
-        override fun areContentsTheSame(old: TaskOccurrence, new: TaskOccurrence) =
-            old == new
+        override fun areContentsTheSame(old: TaskOccurrence, new: TaskOccurrence) = old == new
     }
 }
