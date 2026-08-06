@@ -1,26 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.card.MaterialCardView
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="10dp"
+    app:cardBackgroundColor="@color/surface"
     app:cardCornerRadius="18dp"
     app:cardElevation="0dp"
-    app:strokeWidth="1dp"
+    app:rippleColor="@color/ripple"
     app:strokeColor="@color/divider"
-    app:cardBackgroundColor="@color/surface"
-    app:rippleColor="@color/ripple">
+    app:strokeWidth="1dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
         android:gravity="center_vertical"
+        android:orientation="horizontal"
         android:padding="16dp">
 
-        <!-- Priority color bar -->
         <View
             android:id="@+id/priorityBar"
             android:layout_width="4dp"
@@ -30,28 +28,27 @@
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
             android:layout_marginStart="14dp"
+            android:layout_weight="1"
             android:orientation="vertical">
 
             <TextView
                 android:id="@+id/tvTaskTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textSize="15sp"
-                android:fontFamily="sans-serif-medium"
-                android:textStyle="bold"
-                android:textColor="@color/text_primary"
-                android:maxLines="1"
                 android:ellipsize="end"
-                tools:text="Họp nhóm báo cáo tiến độ" />
+                android:maxLines="1"
+                android:textColor="@color/text_primary"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                tools:text="Team report sync" />
 
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="5dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
                 <ImageView
                     android:layout_width="13dp"
@@ -64,8 +61,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="4dp"
-                    android:textSize="12sp"
                     android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
                     tools:text="14:00" />
 
                 <TextView
@@ -76,11 +73,11 @@
                     android:background="@drawable/bg_badge"
                     android:paddingHorizontal="8dp"
                     android:paddingVertical="2dp"
-                    android:text="🔁 Weekly"
-                    android:textSize="10sp"
-                    android:fontFamily="sans-serif-medium"
                     android:textColor="@color/accent"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
                     android:visibility="gone"
+                    tools:text="Weekly"
                     tools:visibility="visible" />
             </LinearLayout>
         </LinearLayout>
@@ -92,5 +89,4 @@
             app:buttonTint="@color/accent" />
 
     </LinearLayout>
-
 </com.google.android.material.card.MaterialCardView>
