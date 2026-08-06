@@ -106,4 +106,18 @@ interface TaskDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTasks(tasks: List<TaskEntity>)
+
+    @Query(
+        """
+        UPDATE tasks
+        SET reminderTime = :reminderTime,
+            updatedAt = :updatedAt
+        WHERE id = :taskId
+        """
+    )
+    suspend fun updateReminderTime(
+        taskId: Long,
+        reminderTime: Long,
+        updatedAt: Long = System.currentTimeMillis()
+    )
 }
