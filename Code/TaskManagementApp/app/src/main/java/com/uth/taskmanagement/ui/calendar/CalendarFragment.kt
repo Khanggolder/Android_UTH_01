@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -39,7 +40,6 @@ class CalendarFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
         setupRecyclerView()
         setupCalendarView()
         setupFab()
@@ -47,7 +47,8 @@ class CalendarFragment : Fragment() {
     }
 
     private fun setupRecyclerView() {
-        adapter = TaskCalendarAdapter { occurrence, isChecked ->
+        adapter = TaskCalendarAdapter { _, _ ->
+            // TODO: Connect completion update after calendar edit flow is finalized.
         }
         binding.rvTasksOfDay.apply {
             layoutManager = LinearLayoutManager(requireContext())
@@ -57,34 +58,31 @@ class CalendarFragment : Fragment() {
 
     private fun setupCalendarView() {
         binding.calendarView.setOnDateChangeListener { _, year, month, dayOfMonth ->
-            val selected = LocalDate.of(year, month + 1, dayOfMonth)
-            viewModel.onDateSelected(selected)
+            viewModel.onDateSelected(LocalDate.of(year, month + 1, dayOfMonth))
         }
     }
 
     private fun setupFab() {
         binding.fabAddTask.setOnClickListener {
+            Toast.makeText(requireContext(), "Task form will be connected by the task-form module.", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-
                 launch {
                     viewModel.selectedDate.collect { date ->
                         binding.tvSelectedDate.text = formatDateLabel(date)
                     }
                 }
-
                 launch {
                     viewModel.tasksForSelectedDay.collect { occurrences ->
                         adapter.submitList(occurrences)
-
                         val isEmpty = occurrences.isEmpty()
                         binding.emptyState.visibility = if (isEmpty) View.VISIBLE else View.GONE
                         binding.rvTasksOfDay.visibility = if (isEmpty) View.GONE else View.VISIBLE
-                        binding.tvTaskCount.text = "${occurrences.size} việc"
+                        binding.tvTaskCount.text = "${occurrences.size} tasks"
                     }
                 }
             }
@@ -94,15 +92,15 @@ class CalendarFragment : Fragment() {
     private fun formatDateLabel(date: LocalDate): String {
         val today = LocalDate.now()
         return when (date) {
-            today -> "Hôm nay, " + formatFull(date)
-            today.plusDays(1) -> "Ngày mai, " + formatFull(date)
+            today -> "Today, " + formatFull(date)
+            today.plusDays(1) -> "Tomorrow, " + formatFull(date)
             else -> formatFull(date)
         }
     }
 
     private fun formatFull(date: LocalDate): String {
         val millis = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-        return SimpleDateFormat("dd/MM/yyyy", Locale("vi")).format(Date(millis))
+        return SimpleDateFormat("dd/MM/yyyy", Locale.forLanguageTag("vi-VN")).format(Date(millis))
     }
 
     override fun onDestroyView() {
