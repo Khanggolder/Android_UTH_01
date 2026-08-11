@@ -80,7 +80,6 @@
                             android:textSize="13sp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
-
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="0dp"
                     android:layout_height="96dp"
@@ -113,11 +112,99 @@
                             android:layout_height="wrap_content"
                             android:text="Open"
                             android:textColor="@color/text_secondary"
+
                             android:textSize="13sp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
+
             </LinearLayout>
         </LinearLayout>
+
+        <HorizontalScrollView
+            android:id="@+id/scrollFilterChips"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="10dp"
+            android:scrollbars="none"
+            app:layout_constraintTop_toBottomOf="@id/headerSection"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <Button
+                    android:id="@+id/btnFilterStatus"
+                    style="?android:attr/borderlessButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_filter_chip"
+                    android:includeFontPadding="false"
+                    android:minHeight="0dp"
+                    android:text="Trạng thái ▾"
+                    android:textAllCaps="false"
+                    android:textColor="@color/text_primary"
+                    android:textSize="13sp" />
+                <Button
+                    android:id="@+id/btnFilterPriority"
+                    style="?android:attr/borderlessButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_filter_chip"
+                    android:includeFontPadding="false"
+                    android:minHeight="0dp"
+                    android:minWidth="0dp"
+                    android:text="Ưu tiên ▾"
+                    android:textAllCaps="false"
+                    android:textColor="@color/text_primary"
+                    android:textSize="13sp" />
+                
+                <Button
+                    android:id="@+id/btnFilterDueDate"
+                    style="?android:attr/borderlessButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_filter_chip"
+                    android:includeFontPadding="false"
+                    android:minHeight="0dp"
+                    android:minWidth="0dp"
+                    android:text="Hạn ▾"
+                    android:textAllCaps="false"
+                    android:textColor="@color/text_primary"
+                    android:textSize="13sp" />
+
+                <Button
+                    android:id="@+id/btnSort"
+                    style="?android:attr/borderlessButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_filter_chip"
+                    android:includeFontPadding="false"
+                    android:minHeight="0dp"
+                    android:minWidth="0dp"
+                    android:text="Sắp xếp ▾"
+                    android:textAllCaps="false"
+                    android:textColor="@color/text_primary"
+                    android:textSize="13sp" />
+                <TextView
+                    android:id="@+id/btnClearAll"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:layout_marginStart="12dp"
+                    android:padding="8dp"
+                    android:text="✕ Xóa lọc"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+        </HorizontalScrollView>
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerViewTasks"
@@ -131,7 +218,7 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/headerSection"
+            app:layout_constraintTop_toBottomOf="@id/scrollFilterChips"
             tools:listitem="@layout/item_task" />
 
         <LinearLayout
@@ -146,10 +233,11 @@
             android:visibility="gone"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/headerSection"
+            app:layout_constraintTop_toBottomOf="@id/scrollFilterChips"
             tools:visibility="visible">
 
             <TextView
+                android:id="@+id/tvEmptyTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center"
