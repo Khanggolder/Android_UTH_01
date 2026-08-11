@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_light">
+
+    <ImageView
+        android:id="@+id/ivLockIcon"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:background="@drawable/bg_icon_circle"
+        android:padding="15dp"
+        android:src="@drawable/ic_lock"
+        app:tint="@color/accent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="100dp" />
+
+    <TextView
+        android:id="@+id/tvTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Nhập mã PIN"
+        android:textSize="22sp"
+        android:fontFamily="sans-serif-medium"
+        android:textStyle="bold"
+        android:textColor="@color/text_primary"
+        app:layout_constraintTop_toBottomOf="@id/ivLockIcon"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="20dp" />
+
+    <TextView
+        android:id="@+id/tvSubtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Mở khóa để tiếp tục sử dụng app"
+        android:textSize="14sp"
+        android:textColor="@color/text_secondary"
+        app:layout_constraintTop_toBottomOf="@id/tvTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="6dp" />
+
+    <LinearLayout
+        android:id="@+id/dotContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintTop_toBottomOf="@id/tvSubtitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="32dp">
+
+        <View android:id="@+id/dot1" android:layout_width="14dp" android:layout_height="14dp"
+            android:layout_marginHorizontal="8dp" android:background="@drawable/dot_empty" />
+        <View android:id="@+id/dot2" android:layout_width="14dp" android:layout_height="14dp"
+            android:layout_marginHorizontal="8dp" android:background="@drawable/dot_empty" />
+        <View android:id="@+id/dot3" android:layout_width="14dp" android:layout_height="14dp"
+            android:layout_marginHorizontal="8dp" android:background="@drawable/dot_empty" />
+        <View android:id="@+id/dot4" android:layout_width="14dp" android:layout_height="14dp"
+            android:layout_marginHorizontal="8dp" android:background="@drawable/dot_empty" />
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvError"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Sai mã PIN, còn 5 lần thử"
+        android:textSize="13sp"
+        android:textColor="@color/priority_high"
+        android:visibility="invisible"
+        app:layout_constraintTop_toBottomOf="@id/dotContainer"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="14dp" />
+
+    <GridLayout
+        android:id="@+id/keypad"
+        android:layout_width="280dp"
+        android:layout_height="wrap_content"
+        android:columnCount="3"
+        android:rowCount="4"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginBottom="40dp">
+
+        <TextView android:id="@+id/key1" style="@style/PinKeyStyle" android:text="1" />
+        <TextView android:id="@+id/key2" style="@style/PinKeyStyle" android:text="2" />
+        <TextView android:id="@+id/key3" style="@style/PinKeyStyle" android:text="3" />
+        <TextView android:id="@+id/key4" style="@style/PinKeyStyle" android:text="4" />
+        <TextView android:id="@+id/key5" style="@style/PinKeyStyle" android:text="5" />
+        <TextView android:id="@+id/key6" style="@style/PinKeyStyle" android:text="6" />
+        <TextView android:id="@+id/key7" style="@style/PinKeyStyle" android:text="7" />
+        <TextView android:id="@+id/key8" style="@style/PinKeyStyle" android:text="8" />
+        <TextView android:id="@+id/key9" style="@style/PinKeyStyle" android:text="9" />
+
+        <View
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_margin="8dp" />
+
+        <TextView android:id="@+id/key0" style="@style/PinKeyStyle" android:text="0" />
+
+        <ImageView
+            android:id="@+id/keyBackspace"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_margin="8dp"
+            android:padding="20dp"
+            android:src="@drawable/ic_backspace"
+            android:background="@drawable/bg_pin_key"
+            app:tint="@color/text_primary" />
+
+    </GridLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
