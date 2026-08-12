@@ -26,21 +26,12 @@ class TaskAdapter(
         }
     }
 
-    private val dateFormat = SimpleDateFormat("dd/MM HH:mm", Locale.getDefault())
-
-    // Keep for backwards compat (TaskListFragment calls submitList from ListAdapter)
-    fun submitList(newList: List<TaskEntity>) = super.submitList(newList)
-class TaskAdapter : RecyclerView.Adapter<TaskAdapter.TaskViewHolder>() {
-
-    private var tasks = emptyList<TaskEntity>()
-
     private var overdueTaskIds: Set<Long> = emptySet()
     private val dateFormat = SimpleDateFormat("dd/MM HH:mm", Locale.getDefault())
 
-    fun submitList(newList: List<TaskEntity>, overdueIds: Set<Long> = emptySet()) {
-        tasks = newList
+    fun submitList(newList: List<TaskEntity>?, overdueIds: Set<Long> = emptySet()) {
         overdueTaskIds = overdueIds
-        notifyDataSetChanged()
+        super.submitList(newList)
     }
 
     class TaskViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -61,12 +52,22 @@ class TaskAdapter : RecyclerView.Adapter<TaskAdapter.TaskViewHolder>() {
     override fun onBindViewHolder(holder: TaskViewHolder, position: Int) {
         val task = getItem(position)
 
-        val task = tasks[position]
         holder.tvTitle.text = task.title
         holder.tvDescription.text = task.description.ifBlank { "No description" }
         holder.tvPriority.text = task.priority.name
         holder.tvStatus.text = task.status.name
-        holder.tvDueDate.text = dateFormat.format(Date(task.dueDateTime))
+
+        holder.tvDueDate.text = if (overdueTaskIds.contains(task.id)) {
+            "Quá hạn " + dateFormat.format(Date(task.dueDateTime))
+        } else {
+            dateFormat.format(Date(task.dueDateTime))
+        }
+        holder.tvDueDate.setTextColor(
+            holder.itemView.context.getColor(
+                if (overdueTaskIds.contains(task.id))
+                    R.color.priority_high else R.color.text_secondary
+            )
+        )
 
         // Bind checkbox without triggering the listener
         holder.cbCompleted.setOnCheckedChangeListener(null)
@@ -78,23 +79,4 @@ class TaskAdapter : RecyclerView.Adapter<TaskAdapter.TaskViewHolder>() {
         // Item click → open edit form
         holder.itemView.setOnClickListener { onItemClick(task) }
     }
-        holder.tvDueDate.text = if (overdueTaskIds.contains(task.id)) {
-            "Quá hạn " + dateFormat.format(Date(task.dueDateTime))
-        } else {
-            dateFormat.format(Date(task.dueDateTime))
-        }
-        holder.tvDueDate.setTextColor(
-            holder.itemView.context.getColor(
-                if(overdueTaskIds.contains(task.id))
-                    R.color.priority_high else R.color.text_secondary
-            )
-        )
-        holder.cbCompleted.setOnCheckedChangeListener(null)
-        holder.cbCompleted.isChecked = task.isCompleted
-        holder.cbCompleted.setOnCheckedChangeListener { _, _ ->
-            // TODO: Wire completion updates through TaskListViewModel when edit flow is finalized.
-        }
-    }
-
-    override fun getItemCount(): Int = tasks.size
 }
