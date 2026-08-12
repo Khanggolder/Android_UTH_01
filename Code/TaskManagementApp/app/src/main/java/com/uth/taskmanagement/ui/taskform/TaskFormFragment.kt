@@ -1,34 +1,58 @@
 package com.uth.taskmanagement.ui.taskform
 
+import android.Manifest
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ArrayAdapter
-import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import com.google.android.material.button.MaterialButton
 import com.uth.taskmanagement.TaskManagementApp
+import com.uth.taskmanagement.data.model.RecurrenceType
 import com.uth.taskmanagement.data.model.TaskPriority
-import com.uth.taskmanagement.data.model.TaskStatus
 import com.uth.taskmanagement.databinding.FragmentTaskFormBinding
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 
 class TaskFormFragment : Fragment() {
+
+    companion object {
+        private const val ARG_TASK_ID = "arg_task_id"
+
+        fun newInstance(taskId: Long = -1L): TaskFormFragment {
+            return TaskFormFragment().apply {
+                arguments = Bundle().apply {
+                    putLong(ARG_TASK_ID, taskId)
+                }
+            }
+        }
+    }
 
     private var _binding: FragmentTaskFormBinding? = null
     private val binding get() = _binding!!
 
     private lateinit var viewModel: TaskFormViewModel
 
-    private var taskId: Long = 0L
-    private var selectedDueDateTime: Long? = null
+    private val dateTimeFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+
+    // Permission launcher cho Android 13+
+    private val notificationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { _ ->
+            // Người dùng đã trả lời – tiếp tục bình thường
+        }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -39,232 +63,253 @@ class TaskFormFragment : Fragment() {
         return binding.root
     }
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        setupViewModel()
-        setupSpinners()
-        setupListeners()
-
-        taskId = arguments?.getLong(ARG_TASK_ID, 0L) ?: 0L
-
-        if (taskId != 0L) {
-            loadTask()
-        } else {
-            binding.btnDelete.visibility = View.GONE
-            binding.btnComplete.visibility = View.GONE
-        }
-    }
-
-    private fun setupViewModel() {
         val app = requireActivity().application as TaskManagementApp
-
-        val factory = TaskFormViewModelFactory(
-            app.taskRepository
-        )
-
         viewModel = ViewModelProvider(
             this,
-            factory
+            TaskFormViewModelFactory(app, app.taskRepository)
         )[TaskFormViewModel::class.java]
-    }
 
-    private fun setupSpinners() {
-        val priorities = TaskPriority.entries.map { it.name }
-
-        binding.spPriority.adapter = ArrayAdapter(
-            requireContext(),
-            android.R.layout.simple_spinner_dropdown_item,
-            priorities
-        )
-
-        val statuses = TaskStatus.entries.map { it.name }
-
-        binding.spStatus.adapter = ArrayAdapter(
-            requireContext(),
-            android.R.layout.simple_spinner_dropdown_item,
-            statuses
-        )
-    }
-
-    private fun setupListeners() {
-
-        binding.btnDueDate.setOnClickListener {
-            selectDueDateTime()
+        val taskId = arguments?.getLong(ARG_TASK_ID, -1L) ?: -1L
+        if (taskId > 0L) {
+            binding.tvFormTitle.text = "Edit Task"
+            viewModel.loadTask(taskId)
         }
 
-        binding.btnSave.setOnClickListener {
-            saveTask()
+        setupClickListeners()
+        observeState()
+    }
+
+    // ── Setup UI listeners ────────────────────────────────────────────────
+
+    private fun setupClickListeners() {
+        // Due date/time picker
+        binding.btnDueDateTime.setOnClickListener { showDueDateTimePicker() }
+
+        // Priority buttons
+        binding.btnPriorityLow.setOnClickListener { viewModel.setPriority(TaskPriority.LOW) }
+        binding.btnPriorityMedium.setOnClickListener { viewModel.setPriority(TaskPriority.MEDIUM) }
+        binding.btnPriorityHigh.setOnClickListener { viewModel.setPriority(TaskPriority.HIGH) }
+
+        // Reminder picker
+        binding.btnReminderTime.setOnClickListener {
+            requestNotificationPermissionIfNeeded()
+            showReminderTimePicker()
         }
 
-        binding.btnDelete.setOnClickListener {
-            if (taskId != 0L) {
-                viewModel.deleteTask(taskId) {
-                    Toast.makeText(
-                        requireContext(),
-                        "Task deleted",
-                        Toast.LENGTH_SHORT
-                    ).show()
+        // Clear reminder
+        binding.tvClearReminder.setOnClickListener { viewModel.clearReminder() }
 
-                    parentFragmentManager.popBackStack()
-                }
+        // Recurrence buttons
+        binding.btnRecurrenceNone.setOnClickListener { viewModel.setRecurrenceType(RecurrenceType.NONE) }
+        binding.btnRecurrenceDaily.setOnClickListener { viewModel.setRecurrenceType(RecurrenceType.DAILY) }
+        binding.btnRecurrenceWeekly.setOnClickListener { viewModel.setRecurrenceType(RecurrenceType.WEEKLY) }
+        binding.btnRecurrenceMonthly.setOnClickListener { viewModel.setRecurrenceType(RecurrenceType.MONTHLY) }
+
+        // Title input
+        binding.etTitle.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                viewModel.setTitle(s?.toString() ?: "")
             }
-        }
+            override fun afterTextChanged(s: android.text.Editable?) {}
+        })
 
-        binding.btnComplete.setOnClickListener {
-            if (taskId != 0L) {
-                viewModel.setCompleted(
-                    taskId = taskId,
-                    completed = true
-                ) {
-                    Toast.makeText(
-                        requireContext(),
-                        "Task completed",
-                        Toast.LENGTH_SHORT
-                    ).show()
-
-                    parentFragmentManager.popBackStack()
-                }
+        // Description input
+        binding.etDescription.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                viewModel.setDescription(s?.toString() ?: "")
             }
-        }
+            override fun afterTextChanged(s: android.text.Editable?) {}
+        })
+
+        // Save / Cancel
+        binding.btnSave.setOnClickListener { viewModel.saveTask() }
+        binding.btnCancel.setOnClickListener { navigateBack() }
     }
 
-    private fun saveTask() {
+    // ── Observe ViewModel state ───────────────────────────────────────────
 
-        val title = binding.etTitle.text.toString()
-        val description = binding.etDescription.text.toString()
-
-        val priority = TaskPriority.entries[
-            binding.spPriority.selectedItemPosition
-        ]
-
-        val status = TaskStatus.entries[
-            binding.spStatus.selectedItemPosition
-        ]
-
-        val error = viewModel.validate(
-            title = title,
-            dueDateTime = selectedDueDateTime,
-            priority = priority,
-            status = status
-        )
-
-        if (error != null) {
-            Toast.makeText(
-                requireContext(),
-                error,
-                Toast.LENGTH_SHORT
-            ).show()
-
-            return
-        }
-
-        viewModel.saveTask(
-            taskId = taskId,
-            title = title,
-            description = description,
-            dueDateTime = selectedDueDateTime!!,
-            priority = priority,
-            status = status
-        ) {
-            Toast.makeText(
-                requireContext(),
-                "Task saved",
-                Toast.LENGTH_SHORT
-            ).show()
-
-            parentFragmentManager.popBackStack()
-        }
-    }
-
-    private fun loadTask() {
+    private fun observeState() {
         viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.formState.collect { state ->
+                    // Sync text fields only when not focused (prevent cursor jumps)
+                    if (!binding.etTitle.isFocused && binding.etTitle.text.toString() != state.title) {
+                        binding.etTitle.setText(state.title)
+                        binding.etTitle.setSelection(state.title.length)
+                    }
+                    if (!binding.etDescription.isFocused && binding.etDescription.text.toString() != state.description) {
+                        binding.etDescription.setText(state.description)
+                    }
 
-            val task = viewModel.getTask(taskId) ?: return@launch
+                    // Due date/time label
+                    binding.tvDueDateTime.text = dateTimeFormat.format(Date(state.dueDateTime))
 
-            binding.etTitle.setText(task.title)
-            binding.etDescription.setText(task.description)
+                    // Priority buttons
+                    updatePriorityButtons(state.priority)
 
-            selectedDueDateTime = task.dueDateTime
-            updateDueDateText(task.dueDateTime)
+                    // Reminder display
+                    if (state.reminderTime != null) {
+                        binding.tvReminderTime.text = dateTimeFormat.format(Date(state.reminderTime))
+                        binding.tvReminderTime.setTextColor(
+                            ContextCompat.getColor(requireContext(), com.uth.taskmanagement.R.color.text_primary)
+                        )
+                        binding.tvClearReminder.visibility = View.VISIBLE
+                        // Show recurrence section
+                        binding.labelRecurrence.visibility = View.VISIBLE
+                        binding.recurrenceGroup.visibility = View.VISIBLE
+                        updateRecurrenceButtons(state.recurrenceType)
+                    } else {
+                        binding.tvReminderTime.text = "No reminder set"
+                        binding.tvReminderTime.setTextColor(
+                            ContextCompat.getColor(requireContext(), com.uth.taskmanagement.R.color.text_secondary)
+                        )
+                        binding.tvClearReminder.visibility = View.GONE
+                        binding.labelRecurrence.visibility = View.GONE
+                        binding.recurrenceGroup.visibility = View.GONE
+                    }
 
-            binding.spPriority.setSelection(
-                TaskPriority.entries.indexOf(task.priority)
-            )
+                    // Error
+                    if (state.errorMessage != null) {
+                        binding.tvError.text = state.errorMessage
+                        binding.tvError.visibility = View.VISIBLE
+                    } else {
+                        binding.tvError.visibility = View.GONE
+                    }
 
-            binding.spStatus.setSelection(
-                TaskStatus.entries.indexOf(task.status)
-            )
+                    // Loading state
+                    binding.btnSave.isEnabled = !state.isLoading
+                    binding.btnSave.text = if (state.isLoading) "Saving…" else "Save Task"
+
+                    // Navigate back when saved
+                    if (state.isSaved) {
+                        navigateBack()
+                    }
+                }
+            }
         }
     }
 
-    private fun selectDueDateTime() {
+    // ── Date / Time pickers ──────────────────────────────────────────────
 
-        val calendar = Calendar.getInstance()
+    private fun showDueDateTimePicker() {
+        val cal = Calendar.getInstance().apply {
+            timeInMillis = viewModel.formState.value.dueDateTime
+        }
+        DatePickerDialog(
+            requireContext(),
+            { _, year, month, dayOfMonth ->
+                cal.set(Calendar.YEAR, year)
+                cal.set(Calendar.MONTH, month)
+                cal.set(Calendar.DAY_OF_MONTH, dayOfMonth)
+                // After date chosen, show time picker
+                TimePickerDialog(
+                    requireContext(),
+                    { _, hourOfDay, minute ->
+                        cal.set(Calendar.HOUR_OF_DAY, hourOfDay)
+                        cal.set(Calendar.MINUTE, minute)
+                        cal.set(Calendar.SECOND, 0)
+                        viewModel.setDueDateTime(cal.timeInMillis)
+                    },
+                    cal.get(Calendar.HOUR_OF_DAY),
+                    cal.get(Calendar.MINUTE),
+                    true
+                ).show()
+            },
+            cal.get(Calendar.YEAR),
+            cal.get(Calendar.MONTH),
+            cal.get(Calendar.DAY_OF_MONTH)
+        ).show()
+    }
+
+    private fun showReminderTimePicker() {
+        val now = viewModel.formState.value.reminderTime ?: System.currentTimeMillis()
+        val cal = Calendar.getInstance().apply { timeInMillis = now }
 
         DatePickerDialog(
             requireContext(),
             { _, year, month, dayOfMonth ->
-
+                cal.set(Calendar.YEAR, year)
+                cal.set(Calendar.MONTH, month)
+                cal.set(Calendar.DAY_OF_MONTH, dayOfMonth)
                 TimePickerDialog(
                     requireContext(),
-                    { _, hour, minute ->
-
-                        calendar.set(
-                            year,
-                            month,
-                            dayOfMonth,
-                            hour,
-                            minute,
-                            0
-                        )
-
-                        selectedDueDateTime = calendar.timeInMillis
-
-                        updateDueDateText(calendar.timeInMillis)
+                    { _, hourOfDay, minute ->
+                        cal.set(Calendar.HOUR_OF_DAY, hourOfDay)
+                        cal.set(Calendar.MINUTE, minute)
+                        cal.set(Calendar.SECOND, 0)
+                        viewModel.setReminderTime(cal.timeInMillis)
                     },
-                    calendar.get(Calendar.HOUR_OF_DAY),
-                    calendar.get(Calendar.MINUTE),
+                    cal.get(Calendar.HOUR_OF_DAY),
+                    cal.get(Calendar.MINUTE),
                     true
                 ).show()
             },
-            calendar.get(Calendar.YEAR),
-            calendar.get(Calendar.MONTH),
-            calendar.get(Calendar.DAY_OF_MONTH)
+            cal.get(Calendar.YEAR),
+            cal.get(Calendar.MONTH),
+            cal.get(Calendar.DAY_OF_MONTH)
         ).show()
     }
 
-    private fun updateDueDateText(timeMillis: Long) {
-        val formatter = SimpleDateFormat(
-            "dd/MM/yyyy HH:mm",
-            Locale.getDefault()
-        )
+    // ── UI helpers ────────────────────────────────────────────────────────
 
-        binding.btnDueDate.text =
-            formatter.format(timeMillis)
+    private fun updatePriorityButtons(priority: TaskPriority) {
+        val accent = ContextCompat.getColor(requireContext(), com.uth.taskmanagement.R.color.accent)
+        val inactive = ContextCompat.getColor(requireContext(), com.uth.taskmanagement.R.color.divider)
+        val white = ContextCompat.getColor(requireContext(), com.uth.taskmanagement.R.color.text_primary)
+        val secondary = ContextCompat.getColor(requireContext(), com.uth.taskmanagement.R.color.text_secondary)
+
+        fun applyStyle(btn: MaterialButton, active: Boolean) {
+            btn.setStrokeColorResource(if (active) com.uth.taskmanagement.R.color.accent else com.uth.taskmanagement.R.color.divider)
+            btn.setTextColor(if (active) accent else secondary)
+        }
+
+        applyStyle(binding.btnPriorityLow, priority == TaskPriority.LOW)
+        applyStyle(binding.btnPriorityMedium, priority == TaskPriority.MEDIUM)
+        applyStyle(binding.btnPriorityHigh, priority == TaskPriority.HIGH)
+    }
+
+    private fun updateRecurrenceButtons(type: RecurrenceType) {
+        val accent = ContextCompat.getColor(requireContext(), com.uth.taskmanagement.R.color.accent)
+        val secondary = ContextCompat.getColor(requireContext(), com.uth.taskmanagement.R.color.text_secondary)
+
+        fun applyStyle(btn: MaterialButton, active: Boolean) {
+            btn.setStrokeColorResource(if (active) com.uth.taskmanagement.R.color.accent else com.uth.taskmanagement.R.color.divider)
+            btn.setTextColor(if (active) accent else secondary)
+        }
+
+        applyStyle(binding.btnRecurrenceNone, type == RecurrenceType.NONE)
+        applyStyle(binding.btnRecurrenceDaily, type == RecurrenceType.DAILY)
+        applyStyle(binding.btnRecurrenceWeekly, type == RecurrenceType.WEEKLY)
+        applyStyle(binding.btnRecurrenceMonthly, type == RecurrenceType.MONTHLY)
+    }
+
+    // ── Permissions ───────────────────────────────────────────────────────
+
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val status = ContextCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.POST_NOTIFICATIONS
+            )
+            if (status != PackageManager.PERMISSION_GRANTED) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+
+    // ── Navigation ────────────────────────────────────────────────────────
+
+    private fun navigateBack() {
+        parentFragmentManager.popBackStack()
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
-    }
-
-    companion object {
-
-        private const val ARG_TASK_ID = "task_id"
-
-        fun newInstance(taskId: Long = 0L): TaskFormFragment {
-
-            val fragment = TaskFormFragment()
-
-            fragment.arguments = Bundle().apply {
-                putLong(ARG_TASK_ID, taskId)
-            }
-
-            return fragment
-        }
     }
 }

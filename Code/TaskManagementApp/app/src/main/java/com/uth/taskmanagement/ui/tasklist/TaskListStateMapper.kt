@@ -37,7 +37,7 @@ object TaskListStateMapper {
             val hasAnyFilterApplied = statusFilter != TaskStatusFilter.ALL ||
                     priorityFilter != TaskPriorityFilter.ALL ||
                     dueDateFilter != TaskDueDateFilter.ALL
-            val isBecauseOfFilter = allTasks.isNotEmpty() && statusFilter != TaskStatusFilter.ALL
+            val isBecauseOfFilter = allTasks.isNotEmpty() && hasAnyFilterApplied
 
             return TaskListUiState.Empty(
                 isBecauseOfFilter = isBecauseOfFilter,
