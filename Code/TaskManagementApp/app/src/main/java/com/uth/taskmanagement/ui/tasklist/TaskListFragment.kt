@@ -12,6 +12,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.uth.taskmanagement.TaskManagementApp
+import com.uth.taskmanagement.databinding.FragmentTaskListBinding
+import com.uth.taskmanagement.ui.taskform.TaskFormFragment
 import com.uth.taskmanagement.R
 import com.uth.taskmanagement.TaskManagementApp
 import com.uth.taskmanagement.databinding.FragmentTaskListBinding
@@ -55,6 +58,55 @@ class TaskListFragment : Fragment() {
             TaskListViewModelFactory(app.taskRepository)
         )[TaskListViewModel::class.java]
 
+        setupAdapter()
+        setupFab()
+        observeTasks()
+    }
+
+    private fun setupAdapter() {
+        adapter = TaskAdapter(
+            onItemClick = { task ->
+                // Open edit form for the tapped task
+                navigateToForm(task.id)
+            },
+            onCompletedChanged = { task, isChecked ->
+                viewModel.setTaskCompleted(
+                    context = requireContext(),
+                    taskId = task.id,
+                    completed = isChecked
+                )
+            }
+        )
+        binding.recyclerViewTasks.layoutManager = LinearLayoutManager(requireContext())
+        binding.recyclerViewTasks.adapter = adapter
+    }
+
+    private fun setupFab() {
+        binding.fabAddTask.setOnClickListener {
+            navigateToForm(taskId = -1L)
+        }
+    }
+
+    private fun observeTasks() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.tasks.collect { tasks ->
+                    adapter.submitList(tasks)
+                    binding.tvTotalTasks.text = tasks.size.toString()
+                    binding.tvOpenTasks.text = tasks.count { !it.isCompleted }.toString()
+                    binding.tvEmpty.visibility = if (tasks.isEmpty()) View.VISIBLE else View.GONE
+                    binding.recyclerViewTasks.visibility = if (tasks.isEmpty()) View.GONE else View.VISIBLE
+                }
+            }
+        }
+    }
+
+    private fun navigateToForm(taskId: Long) {
+        val fragment = TaskFormFragment.newInstance(taskId)
+        parentFragmentManager.beginTransaction()
+            .replace(com.uth.taskmanagement.R.id.fragmentContainer, fragment)
+            .addToBackStack(null)
+            .commit()
         adapter = TaskAdapter()
         binding.recyclerViewTasks.layoutManager = LinearLayoutManager(requireContext())
         binding.recyclerViewTasks.adapter = adapter

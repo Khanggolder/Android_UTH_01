@@ -1,9 +1,13 @@
 package com.uth.taskmanagement.ui.tasklist
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.uth.taskmanagement.data.model.TaskEntity
 import com.uth.taskmanagement.data.repository.TaskRepository
+import com.uth.taskmanagement.recurrence.RecurrenceScheduler
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import com.uth.taskmanagement.utils.TaskDueDateFilter
 import com.uth.taskmanagement.utils.TaskPriorityFilter
 import com.uth.taskmanagement.utils.TaskSortOption
@@ -80,23 +84,45 @@ class TaskListViewModel(
         }
     }
 
+    /**
+     * Xóa task và hủy Alarm tương ứng nếu có reminder.
+     */
+    fun deleteTask(context: Context, task: TaskEntity) {
+        viewModelScope.launch {
+            // Hủy Alarm trước khi xóa
+            RecurrenceScheduler.cancelAlarm(context, task.id)
     fun deleteTask(task: TaskEntity) {
         viewModelScope.launch {
             repository.deleteTask(task)
         }
     }
 
+    /**
+     * Xóa task theo ID và hủy Alarm tương ứng.
+     */
+    fun deleteTaskById(context: Context, taskId: Long) {
+        viewModelScope.launch {
+            RecurrenceScheduler.cancelAlarm(context, taskId)
     fun deleteTaskById(taskId: Long) {
         viewModelScope.launch {
             repository.deleteTaskById(taskId)
         }
     }
 
+    /**
+     * Đánh dấu hoàn thành và hủy Alarm khi [completed] = true.
+     */
+    fun setTaskCompleted(
+        context: Context,
     fun setTaskCompleted(
         taskId: Long,
         completed: Boolean
     ) {
         viewModelScope.launch {
+            if (completed) {
+                // Hủy Alarm khi task hoàn thành
+                RecurrenceScheduler.cancelAlarm(context, taskId)
+            }
             repository.setTaskCompleted(
                 taskId = taskId,
                 completed = completed
