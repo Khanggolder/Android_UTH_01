@@ -6,8 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.uth.taskmanagement.data.model.TaskEntity
 import com.uth.taskmanagement.data.repository.TaskRepository
 import com.uth.taskmanagement.recurrence.RecurrenceScheduler
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import com.uth.taskmanagement.utils.TaskDueDateFilter
 import com.uth.taskmanagement.utils.TaskPriorityFilter
 import com.uth.taskmanagement.utils.TaskSortOption
@@ -32,9 +30,9 @@ class TaskListViewModel(
             )
 
     private val statusFilter = MutableStateFlow(TaskStatusFilter.ALL)
-    private  val priorityFilter = MutableStateFlow(TaskPriorityFilter.ALL)
-    private  val dueDateFilter = MutableStateFlow(TaskDueDateFilter.ALL)
-    private  val sortOption = MutableStateFlow(TaskSortOption.DUE_DATE_SOONEST_FIRST)
+    private val priorityFilter = MutableStateFlow(TaskPriorityFilter.ALL)
+    private val dueDateFilter = MutableStateFlow(TaskDueDateFilter.ALL)
+    private val sortOption = MutableStateFlow(TaskSortOption.DUE_DATE_SOONEST_FIRST)
 
     val uiState: StateFlow<TaskListUiState> = combine(
         repository.observeAllTasks(),
@@ -47,7 +45,7 @@ class TaskListViewModel(
             allTasks = allTasks,
             statusFilter = status,
             priorityFilter = priority,
-            dueDate,
+            dueDateFilter = dueDate,
             sortOption = sort
         )
     }.stateIn(
@@ -89,8 +87,11 @@ class TaskListViewModel(
      */
     fun deleteTask(context: Context, task: TaskEntity) {
         viewModelScope.launch {
-            // Hủy Alarm trước khi xóa
             RecurrenceScheduler.cancelAlarm(context, task.id)
+            repository.deleteTask(task)
+        }
+    }
+
     fun deleteTask(task: TaskEntity) {
         viewModelScope.launch {
             repository.deleteTask(task)
@@ -103,6 +104,10 @@ class TaskListViewModel(
     fun deleteTaskById(context: Context, taskId: Long) {
         viewModelScope.launch {
             RecurrenceScheduler.cancelAlarm(context, taskId)
+            repository.deleteTaskById(taskId)
+        }
+    }
+
     fun deleteTaskById(taskId: Long) {
         viewModelScope.launch {
             repository.deleteTaskById(taskId)
@@ -114,15 +119,25 @@ class TaskListViewModel(
      */
     fun setTaskCompleted(
         context: Context,
-    fun setTaskCompleted(
         taskId: Long,
         completed: Boolean
     ) {
         viewModelScope.launch {
             if (completed) {
-                // Hủy Alarm khi task hoàn thành
                 RecurrenceScheduler.cancelAlarm(context, taskId)
             }
+            repository.setTaskCompleted(
+                taskId = taskId,
+                completed = completed
+            )
+        }
+    }
+
+    fun setTaskCompleted(
+        taskId: Long,
+        completed: Boolean
+    ) {
+        viewModelScope.launch {
             repository.setTaskCompleted(
                 taskId = taskId,
                 completed = completed
