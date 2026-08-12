@@ -11,24 +11,24 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.fragment.app.Fragment
 import com.uth.taskmanagement.databinding.ActivityMainBinding
 import com.uth.taskmanagement.notification.NotificationHelper
+import com.uth.taskmanagement.ui.calendar.CalendarFragment
+import com.uth.taskmanagement.ui.settings.SettingsFragment
+import com.uth.taskmanagement.ui.tasklist.TaskListFragment
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
 
-    // Xin quyền POST_NOTIFICATIONS (Android 13+)
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
-            if (isGranted) {
-                Toast.makeText(this, "Đã cấp quyền thông báo", Toast.LENGTH_SHORT).show()
+            val message = if (isGranted) {
+                "Notification permission granted"
             } else {
-                Toast.makeText(
-                    this,
-                    "Quyền thông báo bị từ chối. Ứng dụng sẽ không thể gửi nhắc việc.",
-                    Toast.LENGTH_LONG
-                ).show()
+                "Notifications are disabled. Reminders can be enabled later."
             }
+            Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,19 +36,44 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        ViewCompat.setOnApplyWindowInsetsListener(binding.main) { v, insets ->
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.main) { view, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            view.setPadding(systemBars.left, systemBars.top, systemBars.right, 0)
+            binding.bottomNavigation.setPadding(0, 0, 0, systemBars.bottom)
             insets
         }
 
-        // Tạo Notification Channel
         NotificationHelper.createNotificationChannel(this)
-        // Xin quyền thông báo (Android 13+)
+        setupNavigation()
+
+        if (savedInstanceState == null) {
+            binding.bottomNavigation.selectedItemId = R.id.nav_tasks
+            showFragment(TaskListFragment())
+        }
+
         requestNotificationPermission()
     }
 
-    // Xin quyền POST_NOTIFICATIONS nếu Android >= 13 và chưa được cấp
+    private fun setupNavigation() {
+        binding.bottomNavigation.setOnItemSelectedListener { item ->
+            val fragment = when (item.itemId) {
+                R.id.nav_tasks -> TaskListFragment()
+                R.id.nav_calendar -> CalendarFragment()
+                R.id.nav_settings -> SettingsFragment()
+                else -> null
+            }
+            fragment?.let { showFragment(it) }
+            fragment != null
+        }
+    }
+
+    private fun showFragment(fragment: Fragment) {
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragmentContainer, fragment)
+            .commit()
+    }
+
     private fun requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val permissionStatus = ContextCompat.checkSelfPermission(
