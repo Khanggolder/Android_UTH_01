@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:id="@+id/groupDueDateFilter" android:checkableBehavior="single">
+        <item android:id="@+id/menuDueDateAll" android:title="Tất cả" android:checked="true" />
+        <item android:id="@+id/menuDueDateOverdue" android:title="Quá hạn" />
+        <item android:id="@+id/menuDueDateToday" android:title="Hôm nay" />
+        <item android:id="@+id/menuDueDateUpcoming" android:title="Sắp tới" />
+    </group>
+</menu>

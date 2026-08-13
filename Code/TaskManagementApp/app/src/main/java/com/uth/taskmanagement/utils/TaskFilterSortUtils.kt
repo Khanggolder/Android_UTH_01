@@ -33,9 +33,9 @@ enum class TaskDueDateFilter {
  * Kieu sap xep danh sach task.
  */
 enum class TaskSortOption {
-    PRIORITY_HIGH_TO_LOW,
     DUE_DATE_SOONEST_FIRST,
-    DUE_DATE_LATEST_FIRST
+    DUE_DATE_LATEST_FIRST,
+    PRIORITY_HIGH_TO_LOW
 }
 
 /**
@@ -130,7 +130,7 @@ object TaskFilterSortUtils {
     }
 
     /**
-     * Dem so task theo tung muc uu tien, dung cho thong ke/hien thi badge (neu can).
+     * Dem so task theo tung muc uu tien, dung cho thong ke/hien thi badge.
      */
     fun countByPriority(tasks: List<TaskEntity>): Map<TaskPriority, Int> {
         return tasks.groupingBy { it.priority }.eachCount()

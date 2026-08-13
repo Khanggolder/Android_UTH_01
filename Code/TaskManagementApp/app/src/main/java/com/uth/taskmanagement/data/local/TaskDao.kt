@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface TaskDao {
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertTask(task: TaskEntity): Long
 
     @Update
@@ -28,6 +28,9 @@ interface TaskDao {
 
     @Query("SELECT * FROM tasks ORDER BY dueDateTime ASC")
     fun observeAllTasks(): Flow<List<TaskEntity>>
+
+    @Query("SELECT * FROM tasks ORDER BY dueDateTime ASC")
+    suspend fun getAllTasks(): List<TaskEntity>
 
     @Query("SELECT * FROM tasks WHERE id = :taskId LIMIT 1")
     fun observeTaskById(taskId: Long): Flow<TaskEntity?>
@@ -106,4 +109,18 @@ interface TaskDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTasks(tasks: List<TaskEntity>)
+
+    @Query(
+        """
+        UPDATE tasks
+        SET reminderTime = :reminderTime,
+            updatedAt = :updatedAt
+        WHERE id = :taskId
+        """
+    )
+    suspend fun updateReminderTime(
+        taskId: Long,
+        reminderTime: Long,
+        updatedAt: Long = System.currentTimeMillis()
+    )
 }

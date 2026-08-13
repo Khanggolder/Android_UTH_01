@@ -52,30 +52,29 @@ class SettingsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
         observePinState()
         setupClickListeners()
     }
 
     private fun setupClickListeners() {
         binding.rowChangePin.setOnClickListener {
+            showMessage("PIN setup screen is a TODO for the security module.")
         }
-
         binding.rowExport.setOnClickListener {
             exportLauncher.launch("tasks_backup_${System.currentTimeMillis()}.json")
         }
-
         binding.rowRestore.setOnClickListener {
             restoreLauncher.launch(arrayOf("application/json"))
+        }
+        binding.rowNotificationPermission.setOnClickListener {
+            showMessage("Notification permission is requested from the main app shell.")
         }
     }
 
     private fun observePinState() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.isPinEnabled.collect { enabled ->
-                    updatePinUi(enabled)
-                }
+                viewModel.isPinEnabled.collect { enabled -> updatePinUi(enabled) }
             }
         }
     }
@@ -83,18 +82,18 @@ class SettingsFragment : Fragment() {
     private fun updatePinUi(enabled: Boolean) {
         binding.switchPinLock.setOnCheckedChangeListener(null)
         binding.switchPinLock.isChecked = enabled
-
-        binding.tvPinStatus.text = if (enabled)
-            "Đã bật - yêu cầu mã PIN khi mở app"
-        else
-            "Yêu cầu mã PIN khi mở app"
-
+        binding.tvPinStatus.text = if (enabled) {
+            "Enabled - PIN required when opening the app"
+        } else {
+            "Require a PIN when opening the app"
+        }
         binding.rowChangePin.isEnabled = enabled
-        binding.rowChangePin.alpha = if (enabled) 1f else 0.4f
-
+        binding.rowChangePin.alpha = if (enabled) 1f else 0.45f
         binding.switchPinLock.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
-            } else {
+                showMessage("PIN setup is not connected yet.")
+                binding.switchPinLock.isChecked = false
+            } else if (enabled) {
                 confirmDisablePin()
             }
         }
@@ -102,36 +101,36 @@ class SettingsFragment : Fragment() {
 
     private fun confirmDisablePin() {
         AlertDialog.Builder(requireContext())
-            .setTitle("Tắt khóa PIN")
-            .setMessage("Bạn có chắc muốn tắt khóa PIN? App sẽ không yêu cầu mã PIN khi mở nữa.")
-            .setPositiveButton("Tắt") { _, _ -> viewModel.disablePin() }
-            .setNegativeButton("Hủy") { _, _ ->
-                binding.switchPinLock.isChecked = true
-            }
-            .setOnCancelListener {
-                binding.switchPinLock.isChecked = true
-            }
+            .setTitle("Disable PIN lock")
+            .setMessage("Disable PIN protection for this demo app?")
+            .setPositiveButton("Disable") { _, _ -> viewModel.disablePin() }
+            .setNegativeButton("Cancel") { _, _ -> binding.switchPinLock.isChecked = true }
+            .setOnCancelListener { binding.switchPinLock.isChecked = true }
             .show()
     }
 
     private fun confirmAndRestore(uri: Uri) {
         AlertDialog.Builder(requireContext())
-            .setTitle("Khôi phục dữ liệu")
-            .setMessage("Toàn bộ công việc hiện tại sẽ bị thay thế bằng dữ liệu trong file backup. Bạn có chắc chắn muốn tiếp tục?")
-            .setPositiveButton("Khôi phục") { _, _ ->
+            .setTitle("Restore data")
+            .setMessage("Current tasks will be replaced by the selected backup file. Continue?")
+            .setPositiveButton("Restore") { _, _ ->
                 viewModel.restoreTasks(uri) { success -> handleResult(success, isExport = false) }
             }
-            .setNegativeButton("Hủy", null)
+            .setNegativeButton("Cancel", null)
             .show()
     }
 
     private fun handleResult(success: Boolean, isExport: Boolean) {
         val message = when {
-            success && isExport -> "Đã sao lưu thành công"
-            success && !isExport -> "Đã khôi phục dữ liệu thành công"
-            !success && isExport -> "Sao lưu thất bại, vui lòng thử lại"
-            else -> "Khôi phục thất bại, file không hợp lệ"
+            success && isExport -> "Backup exported successfully"
+            success && !isExport -> "Backup restored successfully"
+            !success && isExport -> "Backup export failed"
+            else -> "Restore failed. Please check the JSON file."
         }
+        showMessage(message)
+    }
+
+    private fun showMessage(message: String) {
         Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT).show()
     }
 

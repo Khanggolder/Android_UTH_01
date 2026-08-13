@@ -13,34 +13,61 @@ class TaskRepository(
     fun observeAllTasks(): Flow<List<TaskEntity>> =
         taskDao.observeAllTasks()
 
+    suspend fun getAllTasks(): List<TaskEntity> =
+        taskDao.getAllTasks()
+    
     fun observeTaskById(taskId: Long): Flow<TaskEntity?> =
         taskDao.observeTaskById(taskId)
 
     suspend fun getTaskById(taskId: Long): TaskEntity? =
         taskDao.getTaskById(taskId)
 
-    suspend fun insertTask(task: TaskEntity): Long =
-        taskDao.insertTask(task)
+    suspend fun insertTask(task: TaskEntity): Long {
+        val currentTime = System.currentTimeMillis()
 
-    suspend fun updateTask(task: TaskEntity) =
+        return taskDao.insertTask(
+            task.copy(
+                id = 0,
+                createdAt = currentTime,
+                updatedAt = currentTime
+            )
+        )
+    }
+
+    suspend fun updateTask(task: TaskEntity) {
+        require(task.id > 0) {
+            "Task ID must be greater than 0 when updating."
+        }
+
         taskDao.updateTask(
             task.copy(updatedAt = System.currentTimeMillis())
         )
+    }
 
     suspend fun deleteTask(task: TaskEntity) =
         taskDao.deleteTask(task)
 
-    suspend fun deleteTaskById(taskId: Long) =
+    suspend fun deleteTaskById(taskId: Long) {
+        require(taskId > 0) {
+            "Task ID must be greater than 0 when deleting."
+        }
+
         taskDao.deleteTaskById(taskId)
+    }
 
     suspend fun setTaskCompleted(
         taskId: Long,
         completed: Boolean
     ) {
-        val status = if (completed)
+        require(taskId > 0) {
+            "Task ID must be greater than 0 when updating completion."
+        }
+
+        val status = if (completed) {
             TaskStatus.COMPLETED
-        else
+        } else {
             TaskStatus.PENDING
+        }
 
         taskDao.updateCompletedState(
             taskId = taskId,
@@ -82,4 +109,7 @@ class TaskRepository(
         taskDao.deleteAllTasks()
         taskDao.insertTasks(tasks)
     }
+
+    suspend fun updateReminderTime(taskId: Long, reminderTime: Long) =
+        taskDao.updateReminderTime(taskId, reminderTime)
 }
