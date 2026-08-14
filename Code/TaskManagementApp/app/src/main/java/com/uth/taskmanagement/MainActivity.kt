@@ -17,7 +17,10 @@ import com.uth.taskmanagement.notification.NotificationHelper
 import com.uth.taskmanagement.ui.calendar.CalendarFragment
 import com.uth.taskmanagement.ui.settings.SettingsFragment
 import com.uth.taskmanagement.ui.tasklist.TaskListFragment
-
+import androidx.lifecycle.lifecycleScope
+import com.uth.taskmanagement.security.PinLoginFragment
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
 
@@ -48,8 +51,7 @@ class MainActivity : AppCompatActivity() {
         setupNavigation()
 
         if (savedInstanceState == null) {
-            binding.bottomNavigation.selectedItemId = R.id.nav_tasks
-            showFragment(TaskListFragment())
+            checkPinAndStart()
         }
 
         requestNotificationPermission()
@@ -84,5 +86,23 @@ class MainActivity : AppCompatActivity() {
                 notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
+    }
+    private fun checkPinAndStart() {
+        val app = application as TaskManagementApp
+        lifecycleScope.launch {
+            val isPinEnabled = app.pinPreferences.isPinEnabled.first()
+            if (isPinEnabled) {
+                binding.bottomNavigation.visibility = android.view.View.GONE
+                showFragment(PinLoginFragment())
+            } else {
+                binding.bottomNavigation.selectedItemId = R.id.nav_tasks
+                showFragment(TaskListFragment())
+            }
+        }
+    }
+    fun onPinLoginSuccess() {
+        binding.bottomNavigation.visibility = android.view.View.VISIBLE
+        binding.bottomNavigation.selectedItemId = R.id.nav_tasks
+        showFragment(TaskListFragment())
     }
 }
