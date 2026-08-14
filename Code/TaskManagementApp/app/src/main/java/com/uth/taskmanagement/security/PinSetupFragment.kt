@@ -6,15 +6,16 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.navigation.fragment.findNavController
+
 import com.uth.taskmanagement.databinding.FragmentPinSetupBinding
+import com.uth.taskmanagement.ui.settings.SettingsViewModel
 
 class PinSetupFragment : Fragment() {
 
     private var _binding: FragmentPinSetupBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel: SettingsViewModel by viewModels({ requireParentFragment() }) {
+    private val viewModel: SettingsViewModel by viewModels {
         val app = requireActivity().application as com.uth.taskmanagement.TaskManagementApp
         com.uth.taskmanagement.ui.settings.SettingsViewModelFactory(
             pinPreferences = app.pinPreferences,
@@ -37,7 +38,7 @@ class PinSetupFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         binding.btnBack.setOnClickListener {
-            findNavController().navigateUp()
+            requireActivity().supportFragmentManager.popBackStack()
         }
 
         setupKeypad()
@@ -75,7 +76,7 @@ class PinSetupFragment : Fragment() {
         if (pin == first) {
             viewModel.setupPin(pin) { success ->
                 if (success) {
-                    findNavController().navigateUp()
+                    requireActivity().supportFragmentManager.popBackStack()
                 } else {
                     showError("Có lỗi xảy ra, vui lòng thử lại")
                     resetToFirstStep()
