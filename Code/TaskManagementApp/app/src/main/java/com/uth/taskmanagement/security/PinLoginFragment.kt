@@ -9,7 +9,8 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import com.uth.taskmanagement.databinding.FragmentPinLoginBinding
-
+import com.uth.taskmanagement.ui.settings.SettingsViewModel
+import com.uth.taskmanagement.MainActivity
 class PinLoginFragment : Fragment() {
 
     private var _binding: FragmentPinLoginBinding? = null
@@ -67,7 +68,8 @@ class PinLoginFragment : Fragment() {
     }
 
     private fun onLoginSuccess() {
-        findNavController().popBackStack()
+        val activity = requireActivity() as MainActivity
+        activity.onPinLoginSuccess()
     }
 
     private fun onLoginFailed() {
