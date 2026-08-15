@@ -3,6 +3,6 @@
     <group android:id="@+id/groupSort" android:checkableBehavior="single">
         <item android:id="@+id/menuSortDueSoonest" android:title="Hạn gần nhất" android:checked="true" />
         <item android:id="@+id/menuSortDueLatest" android:title="Hạn xa nhất" />
-        <item android:id="@+id/menuSortPriority" android:title="Ưu tiên cao truớc" />
+        <item android:id="@+id/menuSortPriority" android:title="Ưu tiên cao trước" />
     </group>
 </menu>

@@ -1,10 +1,345 @@
 package com.uth.taskmanagement.ui.taskform
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.uth.taskmanagement.data.model.RecurrenceType
+import com.uth.taskmanagement.data.model.TaskEntity
+import com.uth.taskmanagement.data.model.TaskPriority
+import com.uth.taskmanagement.data.model.TaskStatus
 import com.uth.taskmanagement.data.repository.TaskRepository
+import com.uth.taskmanagement.recurrence.RecurrenceScheduler
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
+data class TaskFormState(
+    val taskId: Long = -1L,
+    val title: String = "",
+    val description: String = "",
+    val dueDateTime: Long = System.currentTimeMillis() + 60 * 60 * 1000L,
+    val priority: TaskPriority = TaskPriority.MEDIUM,
+    val status: TaskStatus = TaskStatus.PENDING,
+    val reminderTime: Long? = null,
+    val recurrenceType: RecurrenceType = RecurrenceType.NONE,
+    val isLoading: Boolean = false,
+    val isSaved: Boolean = false,
+    val errorMessage: String? = null
+)
 
 class TaskFormViewModel(
+    application: Application,
     private val repository: TaskRepository
-) : ViewModel() {
+) : AndroidViewModel(application) {
 
+    private val _formState = MutableStateFlow(TaskFormState())
+    val formState: StateFlow<TaskFormState> = _formState.asStateFlow()
+
+    // ── Setters ──────────────────────────────────────────────────────────
+
+    fun setTitle(value: String) {
+        _formState.value = _formState.value.copy(
+            title = value,
+            errorMessage = null
+        )
+    }
+
+    fun setDescription(value: String) {
+        _formState.value = _formState.value.copy(
+            description = value,
+            errorMessage = null
+        )
+    }
+
+    fun setDueDateTime(millis: Long) {
+        _formState.value = _formState.value.copy(
+            dueDateTime = millis,
+            errorMessage = null
+        )
+    }
+
+    fun setPriority(priority: TaskPriority) {
+        _formState.value = _formState.value.copy(
+            priority = priority,
+            errorMessage = null
+        )
+    }
+
+    fun setStatus(status: TaskStatus) {
+        _formState.value = _formState.value.copy(
+            status = status,
+            errorMessage = null
+        )
+    }
+
+    fun setReminderTime(millis: Long?) {
+        _formState.value = _formState.value.copy(
+            reminderTime = millis
+        )
+    }
+
+    fun setRecurrenceType(type: RecurrenceType) {
+        _formState.value = _formState.value.copy(
+            recurrenceType = type
+        )
+    }
+
+    // ── Load task khi Edit ───────────────────────────────────────────────
+
+    fun loadTask(taskId: Long) {
+        if (taskId <= 0L) return
+
+        viewModelScope.launch {
+            try {
+                val task = repository.getTaskById(taskId) ?: return@launch
+
+                _formState.value = TaskFormState(
+                    taskId = task.id,
+                    title = task.title,
+                    description = task.description,
+                    dueDateTime = task.dueDateTime,
+                    priority = task.priority,
+                    status = task.status,
+                    reminderTime = task.reminderTime,
+                    recurrenceType = task.recurrenceType
+                )
+            } catch (e: Exception) {
+                _formState.value = _formState.value.copy(
+                    errorMessage = "Lỗi khi tải task: ${e.message}"
+                )
+            }
+        }
+    }
+
+    // ── Save: Create hoặc Update ─────────────────────────────────────────
+
+    fun saveTask() {
+        val state = _formState.value
+
+        // Validate title
+        if (state.title.isBlank()) {
+            _formState.value = state.copy(
+                errorMessage = "Tiêu đề không được để trống"
+            )
+            return
+        }
+
+        // Validate description
+        if (state.description.isBlank()) {
+            _formState.value = state.copy(
+                errorMessage = "Mô tả không được để trống"
+            )
+            return
+        }
+
+        // Validate due date
+        if (state.dueDateTime <= System.currentTimeMillis()) {
+            _formState.value = state.copy(
+                errorMessage = "Hạn hoàn thành phải lớn hơn thời gian hiện tại"
+            )
+            return
+        }
+
+        _formState.value = state.copy(
+            isLoading = true,
+            errorMessage = null
+        )
+
+        viewModelScope.launch {
+            try {
+                val context =
+                    getApplication<Application>().applicationContext
+
+                val reminderTime = state.reminderTime
+
+                if (state.taskId <= 0L) {
+
+                    // ── CREATE ────────────────────────────────────────────
+
+                    val newTask = TaskEntity(
+                        title = state.title.trim(),
+                        description = state.description.trim(),
+                        dueDateTime = state.dueDateTime,
+                        priority = state.priority,
+                        status = state.status,
+                        isCompleted = state.status == TaskStatus.COMPLETED,
+                        reminderTime = reminderTime,
+                        recurrenceType = if (reminderTime != null) {
+                            state.recurrenceType
+                        } else {
+                            RecurrenceType.NONE
+                        }
+                    )
+
+                    val newId = repository.insertTask(newTask)
+
+                    // Schedule reminder nếu có
+                    if (
+                        reminderTime != null &&
+                        reminderTime > System.currentTimeMillis()
+                    ) {
+                        RecurrenceScheduler.scheduleNextAlarm(
+                            context = context,
+                            taskId = newId,
+                            title = state.title,
+                            description = state.description,
+                            triggerTimeMillis = reminderTime
+                        )
+                    }
+
+                } else {
+
+                    // ── UPDATE ────────────────────────────────────────────
+
+                    val existing =
+                        repository.getTaskById(state.taskId)
+                            ?: throw IllegalStateException("Không tìm thấy task")
+
+                    val updatedTask = existing.copy(
+                        title = state.title.trim(),
+                        description = state.description.trim(),
+                        dueDateTime = state.dueDateTime,
+                        priority = state.priority,
+                        status = state.status,
+                        isCompleted = state.status == TaskStatus.COMPLETED,
+                        reminderTime = reminderTime,
+                        recurrenceType = if (reminderTime != null) {
+                            state.recurrenceType
+                        } else {
+                            RecurrenceType.NONE
+                        }
+                    )
+
+                    repository.updateTask(updatedTask)
+
+                    // Hủy alarm cũ
+                    RecurrenceScheduler.cancelAlarm(
+                        context,
+                        state.taskId
+                    )
+
+                    // Schedule lại nếu có reminder
+                    if (
+                        reminderTime != null &&
+                        reminderTime > System.currentTimeMillis()
+                    ) {
+                        RecurrenceScheduler.scheduleNextAlarm(
+                            context = context,
+                            taskId = state.taskId,
+                            title = state.title,
+                            description = state.description,
+                            triggerTimeMillis = reminderTime
+                        )
+                    }
+                }
+
+                _formState.value = _formState.value.copy(
+                    isLoading = false,
+                    isSaved = true,
+                    errorMessage = null
+                )
+
+            } catch (e: Exception) {
+                _formState.value = _formState.value.copy(
+                    isLoading = false,
+                    errorMessage = "Lỗi khi lưu: ${e.message}"
+                )
+            }
+        }
+    }
+
+    // ── Delete Task ──────────────────────────────────────────────────────
+
+    fun deleteTask() {
+        val state = _formState.value
+
+        if (state.taskId <= 0L) return
+
+        _formState.value = state.copy(
+            isLoading = true,
+            errorMessage = null
+        )
+
+        viewModelScope.launch {
+            try {
+                val context =
+                    getApplication<Application>().applicationContext
+
+                // Hủy reminder trước khi xóa
+                RecurrenceScheduler.cancelAlarm(
+                    context,
+                    state.taskId
+                )
+
+                repository.deleteTaskById(state.taskId)
+
+                _formState.value = _formState.value.copy(
+                    isLoading = false,
+                    isSaved = true
+                )
+
+            } catch (e: Exception) {
+                _formState.value = _formState.value.copy(
+                    isLoading = false,
+                    errorMessage = "Lỗi khi xóa task: ${e.message}"
+                )
+            }
+        }
+    }
+
+    // ── Mark Completed ───────────────────────────────────────────────────
+
+    fun markCompleted() {
+        val state = _formState.value
+
+        if (state.taskId <= 0L) return
+
+        _formState.value = state.copy(
+            isLoading = true,
+            errorMessage = null
+        )
+
+        viewModelScope.launch {
+            try {
+                repository.setTaskCompleted(
+                    taskId = state.taskId,
+                    completed = true
+                )
+
+                _formState.value = _formState.value.copy(
+                    status = TaskStatus.COMPLETED,
+                    isLoading = false,
+                    isSaved = true
+                )
+
+            } catch (e: Exception) {
+                _formState.value = _formState.value.copy(
+                    isLoading = false,
+                    errorMessage = "Lỗi khi hoàn thành task: ${e.message}"
+                )
+            }
+        }
+    }
+
+    // ── Clear Reminder ───────────────────────────────────────────────────
+
+    fun clearReminder() {
+        val state = _formState.value
+
+        if (state.taskId > 0L) {
+            val context =
+                getApplication<Application>().applicationContext
+
+            RecurrenceScheduler.cancelAlarm(
+                context,
+                state.taskId
+            )
+        }
+
+        _formState.value = state.copy(
+            reminderTime = null,
+            recurrenceType = RecurrenceType.NONE
+        )
+    }
 }

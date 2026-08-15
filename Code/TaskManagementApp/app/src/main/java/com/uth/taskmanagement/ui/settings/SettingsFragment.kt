@@ -14,6 +14,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.snackbar.Snackbar
 import com.uth.taskmanagement.databinding.FragmentSettingsBinding
+import com.uth.taskmanagement.R
+import com.uth.taskmanagement.security.PinSetupFragment
 import kotlinx.coroutines.launch
 
 class SettingsFragment : Fragment() {
@@ -87,13 +89,13 @@ class SettingsFragment : Fragment() {
         } else {
             "Require a PIN when opening the app"
         }
-        binding.rowChangePin.isEnabled = enabled
-        binding.rowChangePin.alpha = if (enabled) 1f else 0.45f
         binding.switchPinLock.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
-                showMessage("PIN setup is not connected yet.")
-                binding.switchPinLock.isChecked = false
-            } else if (enabled) {
+                requireActivity().supportFragmentManager.beginTransaction()
+                    .replace(R.id.fragmentContainer, PinSetupFragment())
+                    .addToBackStack("pin_setup")
+                    .commit()
+            } else {
                 confirmDisablePin()
             }
         }

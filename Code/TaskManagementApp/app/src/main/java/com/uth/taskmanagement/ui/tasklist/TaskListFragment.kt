@@ -5,7 +5,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.PopupMenu
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
@@ -15,6 +14,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.uth.taskmanagement.R
 import com.uth.taskmanagement.TaskManagementApp
 import com.uth.taskmanagement.databinding.FragmentTaskListBinding
+import com.uth.taskmanagement.ui.taskform.TaskFormFragment
 import com.uth.taskmanagement.utils.TaskDueDateFilter
 import com.uth.taskmanagement.utils.TaskPriorityFilter
 import com.uth.taskmanagement.utils.TaskSortOption
@@ -30,11 +30,8 @@ class TaskListFragment : Fragment() {
     private lateinit var viewModel: TaskListViewModel
 
     private var currentStatusFilter = TaskStatusFilter.ALL
-
     private var currentPriorityFilter = TaskPriorityFilter.ALL
-
     private var currentDueDateFilter = TaskDueDateFilter.ALL
-
     private var currentSort = TaskSortOption.DUE_DATE_SOONEST_FIRST
 
     override fun onCreateView(
@@ -55,24 +52,48 @@ class TaskListFragment : Fragment() {
             TaskListViewModelFactory(app.taskRepository)
         )[TaskListViewModel::class.java]
 
-        adapter = TaskAdapter()
-        binding.recyclerViewTasks.layoutManager = LinearLayoutManager(requireContext())
-        binding.recyclerViewTasks.adapter = adapter
-
-        binding.fabAddTask.setOnClickListener {
-            Toast.makeText(requireContext(), "Task form will be connected by the task-form module.", Toast.LENGTH_SHORT).show()
-        }
-
+        setupAdapter()
+        setupFab()
         setupFilerChips()
         observeTotals()
         observeUiState()
     }
 
+    private fun setupAdapter() {
+        adapter = TaskAdapter(
+            onItemClick = { task ->
+                // Open edit form for the tapped task
+                navigateToForm(task.id)
+            },
+            onCompletedChanged = { task, isChecked ->
+                viewModel.setTaskCompleted(
+                    context = requireContext(),
+                    taskId = task.id,
+                    completed = isChecked
+                )
+            }
+        )
+        binding.recyclerViewTasks.layoutManager = LinearLayoutManager(requireContext())
+        binding.recyclerViewTasks.adapter = adapter
+    }
+
+    private fun setupFab() {
+        binding.fabAddTask.setOnClickListener {
+            navigateToForm(taskId = -1L)
+        }
+    }
+
+    private fun navigateToForm(taskId: Long) {
+        val fragment = TaskFormFragment.newInstance(taskId)
+        parentFragmentManager.beginTransaction()
+            .replace(R.id.fragmentContainer, fragment)
+            .addToBackStack(null)
+            .commit()
+    }
+
     private fun setupFilerChips() {
         binding.btnFilterStatus.setOnClickListener { showStatusFilterMenu() }
-        binding.btnFilterPriority.setOnClickListener {
-            showPriorityFilterMenu() }
-
+        binding.btnFilterPriority.setOnClickListener { showPriorityFilterMenu() }
         binding.btnFilterDueDate.setOnClickListener { showDueDateFilterMenu() }
         binding.btnSort.setOnClickListener { showSortMenu() }
         binding.btnClearAll.setOnClickListener { clearAllFilters() }
@@ -82,15 +103,15 @@ class TaskListFragment : Fragment() {
 
     private fun showStatusFilterMenu() {
         val popup = PopupMenu(requireContext(), binding.btnFilterStatus)
-
         popup.menuInflater.inflate(R.menu.menu_filter_status, popup.menu)
         checkCurrentItem(popup, currentStatusFilter.ordinal)
-        popup.setOnMenuItemClickListener { item -> currentStatusFilter = when(item.itemId) {
-            R.id.menuStatusPending -> TaskStatusFilter.PENDING
-            R.id.menuStatusInProgress -> TaskStatusFilter.IN_PROGRESS
-            R.id.menuStatusCompleted -> TaskStatusFilter.COMPLETED
-            else -> TaskStatusFilter.ALL
-        }
+        popup.setOnMenuItemClickListener { item ->
+            currentStatusFilter = when (item.itemId) {
+                R.id.menuStatusPending -> TaskStatusFilter.PENDING
+                R.id.menuStatusInProgress -> TaskStatusFilter.IN_PROGRESS
+                R.id.menuStatusCompleted -> TaskStatusFilter.COMPLETED
+                else -> TaskStatusFilter.ALL
+            }
             viewModel.setStatusFilter(currentStatusFilter)
             updateChipLabels()
             true
@@ -211,7 +232,6 @@ class TaskListFragment : Fragment() {
         TaskSortOption.PRIORITY_HIGH_TO_LOW -> "Ưu tiên cao trước"
     }
 
-
     private fun observeTotals() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -223,7 +243,6 @@ class TaskListFragment : Fragment() {
         }
     }
 
-
     private fun observeUiState() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -233,7 +252,7 @@ class TaskListFragment : Fragment() {
 
                     when (state) {
                         is TaskListUiState.Loading -> {
-                            // TODO: hien progress bar rieng neu can
+                            // Optionally show progress bar
                         }
 
                         is TaskListUiState.Success -> {

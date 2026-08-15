@@ -3,7 +3,7 @@
     <group android:id="@+id/groupPriorityFilter" android:checkableBehavior="single">
         <item android:id="@+id/menuPriorityAll" android:title="Tất cả" android:checked="true" />
         <item android:id="@+id/menuPriorityLow" android:title="Thấp" />
-        <item android:id="@+id/menuPriorityMedium" android:title="Trung bnh" />
+        <item android:id="@+id/menuPriorityMedium" android:title="Trung bình" />
         <item android:id="@+id/menuPriorityHigh" android:title="Cao" />
     </group>
 </menu>
