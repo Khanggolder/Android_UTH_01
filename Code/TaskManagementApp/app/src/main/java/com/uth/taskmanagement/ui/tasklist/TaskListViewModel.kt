@@ -43,7 +43,7 @@ class TaskListViewModel(
             allTasks = allTasks,
             statusFilter = status,
             priorityFilter = priority,
-            dueDate,
+            dueDateFilter = dueDate,
             sortOption = sort
         )
     }.stateIn(

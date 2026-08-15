@@ -129,9 +129,6 @@ object TaskFilterSortUtils {
         return sort(filtered, sortOption)
     }
 
-    /**
-     * Dem so task theo tung muc uu tien, dung cho thong ke/hien thi badge.
-     */
     fun countByPriority(tasks: List<TaskEntity>): Map<TaskPriority, Int> {
         return tasks.groupingBy { it.priority }.eachCount()
     }
