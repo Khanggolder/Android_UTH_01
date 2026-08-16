@@ -65,8 +65,8 @@ class PinSetupFragment : Fragment() {
 
         if (first == null) {
             firstEnteredPin = pin
-            binding.tvTitle.text = "Nhập lại mã PIN"
-            binding.tvSubtitle.text = "Xác nhận mã PIN vừa tạo"
+            binding.tvTitle.text = "Re-enter PIN"
+            binding.tvSubtitle.text = "Confirm the PIN you just created"
             binding.tvError.visibility = View.INVISIBLE
 
             binding.root.postDelayed({ keypadController.reset() }, 150)
@@ -78,20 +78,20 @@ class PinSetupFragment : Fragment() {
                 if (success) {
                     requireActivity().supportFragmentManager.popBackStack()
                 } else {
-                    showError("Có lỗi xảy ra, vui lòng thử lại")
+                    showError("Something went wrong. Please try again.")
                     resetToFirstStep()
                 }
             }
         } else {
-            showError("Mã PIN không khớp, vui lòng thử lại")
+            showError("PINs do not match. Try again.")
             resetToFirstStep()
         }
     }
 
     private fun resetToFirstStep() {
         firstEnteredPin = null
-        binding.tvTitle.text = "Tạo mã PIN"
-        binding.tvSubtitle.text = "Nhập 4 chữ số để khóa ứng dụng"
+        binding.tvTitle.text = "Create PIN"
+        binding.tvSubtitle.text = "Enter 4 digits to lock the app"
         binding.root.postDelayed({ keypadController.reset() }, 400)
     }
 

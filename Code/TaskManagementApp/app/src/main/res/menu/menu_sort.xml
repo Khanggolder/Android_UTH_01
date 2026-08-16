@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <group android:id="@+id/groupSort" android:checkableBehavior="single">
-        <item android:id="@+id/menuSortDueSoonest" android:title="Hạn gần nhất" android:checked="true" />
-        <item android:id="@+id/menuSortDueLatest" android:title="Hạn xa nhất" />
-        <item android:id="@+id/menuSortPriority" android:title="Ưu tiên cao trước" />
+        <item android:id="@+id/menuSortDueSoonest" android:title="Due soonest" android:checked="true" />
+        <item android:id="@+id/menuSortDueLatest" android:title="Due latest" />
+        <item android:id="@+id/menuSortPriority" android:title="Priority high first" />
     </group>
 </menu>

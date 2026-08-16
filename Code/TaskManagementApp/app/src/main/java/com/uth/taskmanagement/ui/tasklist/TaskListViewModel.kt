@@ -45,7 +45,7 @@ class TaskListViewModel(
             allTasks = allTasks,
             statusFilter = status,
             priorityFilter = priority,
-            dueDate,
+            dueDateFilter = dueDate,
             sortOption = sort
         )
     }.stateIn(
@@ -82,8 +82,9 @@ class TaskListViewModel(
         }
     }
 
-
-
+    /**
+     * Xóa task và hủy Alarm tương ứng nếu có reminder.
+     */
     fun deleteTask(context: Context, task: TaskEntity) {
         viewModelScope.launch {
             RecurrenceScheduler.cancelAlarm(context, task.id)
@@ -97,7 +98,9 @@ class TaskListViewModel(
         }
     }
 
-
+    /**
+     * Xóa task theo ID và hủy Alarm tương ứng.
+     */
     fun deleteTaskById(context: Context, taskId: Long) {
         viewModelScope.launch {
             RecurrenceScheduler.cancelAlarm(context, taskId)
@@ -111,7 +114,9 @@ class TaskListViewModel(
         }
     }
 
-
+    /**
+     * Đánh dấu hoàn thành và hủy Alarm khi [completed] = true.
+     */
     fun setTaskCompleted(
         context: Context,
         taskId: Long,
