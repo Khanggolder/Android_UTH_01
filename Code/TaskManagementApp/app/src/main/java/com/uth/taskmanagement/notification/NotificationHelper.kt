@@ -13,8 +13,8 @@ import com.uth.taskmanagement.R
 object NotificationHelper {
 
     const val CHANNEL_ID = "task_reminder_channel"
-    private const val CHANNEL_NAME = "Nhắc việc"
-    private const val CHANNEL_DESCRIPTION = "Thông báo nhắc nhở thực hiện công việc đúng thời gian"
+    private const val CHANNEL_NAME = "Task reminder"
+    private const val CHANNEL_DESCRIPTION = "Reminder notifications for scheduled tasks"
 
     // Tạo Notification Channel (gọi lại nhiều lần không ảnh hưởng)
     fun createNotificationChannel(context: Context) {

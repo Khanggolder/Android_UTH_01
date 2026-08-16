@@ -190,10 +190,10 @@ class TaskListFragment : Fragment() {
     }
 
     private fun updateChipLabels() {
-        binding.btnFilterStatus.text = buildChipText("Trạng thái", statusLabel(currentStatusFilter))
-        binding.btnFilterPriority.text = buildChipText("Ưu tiên", priorityLabel(currentPriorityFilter))
-        binding.btnFilterDueDate.text = buildChipText("Hạn", dueDateLabel(currentDueDateFilter))
-        binding.btnSort.text = buildChipText("Sắp xếp", sortLabel(currentSort))
+        binding.btnFilterStatus.text = buildChipText("Status", statusLabel(currentStatusFilter))
+        binding.btnFilterPriority.text = buildChipText("Priority", priorityLabel(currentPriorityFilter))
+        binding.btnFilterDueDate.text = buildChipText("Due date", dueDateLabel(currentDueDateFilter))
+        binding.btnSort.text = buildChipText("Sort", sortLabel(currentSort))
 
         val hasAnyFilter = currentStatusFilter != TaskStatusFilter.ALL ||
                 currentPriorityFilter != TaskPriorityFilter.ALL ||
@@ -207,29 +207,29 @@ class TaskListFragment : Fragment() {
 
     private fun statusLabel(filter: TaskStatusFilter): String? = when (filter) {
         TaskStatusFilter.ALL -> null
-        TaskStatusFilter.PENDING -> "Chưa làm"
-        TaskStatusFilter.IN_PROGRESS -> "Đang làm"
-        TaskStatusFilter.COMPLETED -> "Đã xong"
+        TaskStatusFilter.PENDING -> "Pending"
+        TaskStatusFilter.IN_PROGRESS -> "In progress"
+        TaskStatusFilter.COMPLETED -> "Completed"
     }
 
     private fun priorityLabel(filter: TaskPriorityFilter): String? = when (filter) {
         TaskPriorityFilter.ALL -> null
-        TaskPriorityFilter.LOW -> "Thấp"
-        TaskPriorityFilter.MEDIUM -> "Trung bình"
-        TaskPriorityFilter.HIGH -> "Cao"
+        TaskPriorityFilter.LOW -> "Low"
+        TaskPriorityFilter.MEDIUM -> "Medium"
+        TaskPriorityFilter.HIGH -> "High"
     }
 
     private fun dueDateLabel(filter: TaskDueDateFilter): String? = when (filter) {
         TaskDueDateFilter.ALL -> null
-        TaskDueDateFilter.OVERDUE -> "Quá hạn"
-        TaskDueDateFilter.DUE_TODAY -> "Hôm nay"
-        TaskDueDateFilter.UPCOMING -> "Sắp tới"
+        TaskDueDateFilter.OVERDUE -> "Overdue"
+        TaskDueDateFilter.DUE_TODAY -> "Today"
+        TaskDueDateFilter.UPCOMING -> "Upcoming"
     }
 
     private fun sortLabel(sort: TaskSortOption): String = when (sort) {
-        TaskSortOption.DUE_DATE_SOONEST_FIRST -> "Hạn gần nhất"
-        TaskSortOption.DUE_DATE_LATEST_FIRST -> "Hạn xa nhất"
-        TaskSortOption.PRIORITY_HIGH_TO_LOW -> "Ưu tiên cao trước"
+        TaskSortOption.DUE_DATE_SOONEST_FIRST -> "Due soonest"
+        TaskSortOption.DUE_DATE_LATEST_FIRST -> "Due latest"
+        TaskSortOption.PRIORITY_HIGH_TO_LOW -> "Priority high first"
     }
 
     private fun observeTotals() {
@@ -263,7 +263,7 @@ class TaskListFragment : Fragment() {
                         is TaskListUiState.Empty -> {
                             binding.tvEmpty.visibility = View.VISIBLE
                             binding.tvEmptyTitle.text = if (state.isBecauseOfFilter) {
-                                "Không có công việc khớp bộ lọc"
+                                "No tasks match the selected filters"
                             } else {
                                 "No tasks yet"
                             }

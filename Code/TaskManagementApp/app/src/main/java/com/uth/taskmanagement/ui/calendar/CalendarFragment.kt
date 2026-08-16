@@ -4,14 +4,15 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.uth.taskmanagement.R
 import com.uth.taskmanagement.databinding.FragmentCalendarBinding
+import com.uth.taskmanagement.ui.taskform.TaskFormFragment
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.time.LocalDate
@@ -47,8 +48,12 @@ class CalendarFragment : Fragment() {
     }
 
     private fun setupRecyclerView() {
-        adapter = TaskCalendarAdapter { _, _ ->
-            // TODO: Connect completion update after calendar edit flow is finalized.
+        adapter = TaskCalendarAdapter { occurrence, isChecked ->
+            viewModel.setTaskCompleted(
+                context = requireContext(),
+                taskId = occurrence.task.id,
+                completed = isChecked
+            )
         }
         binding.rvTasksOfDay.apply {
             layoutManager = LinearLayoutManager(requireContext())
@@ -64,7 +69,10 @@ class CalendarFragment : Fragment() {
 
     private fun setupFab() {
         binding.fabAddTask.setOnClickListener {
-            Toast.makeText(requireContext(), "Task form will be connected by the task-form module.", Toast.LENGTH_SHORT).show()
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.fragmentContainer, TaskFormFragment.newInstance())
+                .addToBackStack(null)
+                .commit()
         }
     }
 
