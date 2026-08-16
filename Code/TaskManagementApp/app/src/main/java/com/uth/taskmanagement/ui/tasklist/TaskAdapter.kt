@@ -58,7 +58,7 @@ class TaskAdapter(
         holder.tvStatus.text = task.status.name
 
         holder.tvDueDate.text = if (overdueTaskIds.contains(task.id)) {
-            "Quá hạn " + dateFormat.format(Date(task.dueDateTime))
+            "Overdue " + dateFormat.format(Date(task.dueDateTime))
         } else {
             dateFormat.format(Date(task.dueDateTime))
         }

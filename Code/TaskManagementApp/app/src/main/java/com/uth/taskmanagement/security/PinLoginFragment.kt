@@ -7,7 +7,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.navigation.fragment.findNavController
 import com.uth.taskmanagement.databinding.FragmentPinLoginBinding
 import com.uth.taskmanagement.ui.settings.SettingsViewModel
 import com.uth.taskmanagement.MainActivity
@@ -83,7 +82,7 @@ class PinLoginFragment : Fragment() {
         if (remainingAttempts <= 0) {
             startLockout()
         } else {
-            showError("Sai mã PIN, còn $remainingAttempts lần thử")
+            showError("Incorrect PIN, $remainingAttempts attempts left")
         }
     }
 
@@ -95,7 +94,7 @@ class PinLoginFragment : Fragment() {
         lockoutTimer = object : CountDownTimer(LOCKOUT_DURATION_MS, 1000) {
             override fun onTick(millisUntilFinished: Long) {
                 val secondsLeft = millisUntilFinished / 1000
-                showError("Nhập sai quá nhiều lần, thử lại sau ${secondsLeft}s")
+                showError("Too many incorrect attempts. Try again in ${secondsLeft}s")
             }
 
             override fun onFinish() {

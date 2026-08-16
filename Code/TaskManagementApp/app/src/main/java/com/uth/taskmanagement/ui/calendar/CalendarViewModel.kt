@@ -1,17 +1,21 @@
 package com.uth.taskmanagement.ui.calendar
 
+import android.content.Context
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.uth.taskmanagement.data.model.RecurrenceType
 import com.uth.taskmanagement.data.model.TaskEntity
 import com.uth.taskmanagement.data.repository.TaskRepository
+import com.uth.taskmanagement.recurrence.RecurrenceScheduler
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Calendar
@@ -37,6 +41,14 @@ class CalendarViewModel(private val repo: TaskRepository) : ViewModel() {
 
     fun onDateSelected(date: LocalDate) {
         _selectedDate.value = date
+    }
+    fun setTaskCompleted(context: Context, taskId: Long, completed: Boolean) {
+        viewModelScope.launch {
+            if (completed) {
+                RecurrenceScheduler.cancelAlarm(context, taskId)
+            }
+            repo.setTaskCompleted(taskId = taskId, completed = completed)
+        }
     }
     private fun findOccurrenceInRange(
         task: TaskEntity,

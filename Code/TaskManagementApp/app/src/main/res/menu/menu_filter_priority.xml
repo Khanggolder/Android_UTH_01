@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <group android:id="@+id/groupPriorityFilter" android:checkableBehavior="single">
-        <item android:id="@+id/menuPriorityAll" android:title="Tất cả" android:checked="true" />
-        <item android:id="@+id/menuPriorityLow" android:title="Thấp" />
-        <item android:id="@+id/menuPriorityMedium" android:title="Trung bnh" />
-        <item android:id="@+id/menuPriorityHigh" android:title="Cao" />
+        <item android:id="@+id/menuPriorityAll" android:title="All" android:checked="true" />
+        <item android:id="@+id/menuPriorityLow" android:title="Low" />
+        <item android:id="@+id/menuPriorityMedium" android:title="Medium" />
+        <item android:id="@+id/menuPriorityHigh" android:title="High" />
     </group>
 </menu>

@@ -5,5 +5,9 @@ object ValidationUtils {
 
     fun isValidTaskTitle(title: String): Boolean = isNotBlank(title)
 
-    // TODO: Add validation rules for task date, priority, category, and settings forms.
+    fun isValidTaskDescription(description: String): Boolean = isNotBlank(description)
+
+    fun isFutureTimestamp(timestampMillis: Long, nowMillis: Long = System.currentTimeMillis()): Boolean {
+        return timestampMillis > nowMillis
+    }
 }
