@@ -22,7 +22,7 @@ class ReminderReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         val taskId = intent.getLongExtra(EXTRA_TASK_ID, -1L)
-        val title = intent.getStringExtra(EXTRA_TASK_TITLE) ?: "Nhắc việc"
+        val title = intent.getStringExtra(EXTRA_TASK_TITLE) ?: "Task reminder"
         val description = intent.getStringExtra(EXTRA_TASK_DESCRIPTION) ?: ""
 
         if (taskId == -1L) return
@@ -32,7 +32,7 @@ class ReminderReceiver : BroadcastReceiver() {
             context = context,
             notificationId = taskId.toInt(),
             title = title,
-            content = description.ifEmpty { "Đã đến lúc thực hiện công việc!" }
+            content = description.ifEmpty { "It is time to work on this task!" }
         )
 
         // goAsync() giữ wake lock đủ lâu để coroutine hoàn thành

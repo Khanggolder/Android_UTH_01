@@ -106,7 +106,7 @@ class TaskFormViewModel(
                 )
             } catch (e: Exception) {
                 _formState.value = _formState.value.copy(
-                    errorMessage = "Lỗi khi tải task: ${e.message}"
+                    errorMessage = "Failed to load task: ${e.message}"
                 )
             }
         }
@@ -120,7 +120,7 @@ class TaskFormViewModel(
         // Validate title
         if (state.title.isBlank()) {
             _formState.value = state.copy(
-                errorMessage = "Tiêu đề không được để trống"
+                errorMessage = "Title is required"
             )
             return
         }
@@ -128,7 +128,7 @@ class TaskFormViewModel(
         // Validate description
         if (state.description.isBlank()) {
             _formState.value = state.copy(
-                errorMessage = "Mô tả không được để trống"
+                errorMessage = "Description is required"
             )
             return
         }
@@ -136,7 +136,7 @@ class TaskFormViewModel(
         // Validate due date
         if (state.dueDateTime <= System.currentTimeMillis()) {
             _formState.value = state.copy(
-                errorMessage = "Hạn hoàn thành phải lớn hơn thời gian hiện tại"
+                errorMessage = "Due date must be in the future"
             )
             return
         }
@@ -194,7 +194,7 @@ class TaskFormViewModel(
 
                     val existing =
                         repository.getTaskById(state.taskId)
-                            ?: throw IllegalStateException("Không tìm thấy task")
+                            ?: throw IllegalStateException("Task not found")
 
                     val updatedTask = existing.copy(
                         title = state.title.trim(),
@@ -243,7 +243,7 @@ class TaskFormViewModel(
             } catch (e: Exception) {
                 _formState.value = _formState.value.copy(
                     isLoading = false,
-                    errorMessage = "Lỗi khi lưu: ${e.message}"
+                    errorMessage = "Failed to save task: ${e.message}"
                 )
             }
         }
@@ -282,7 +282,7 @@ class TaskFormViewModel(
             } catch (e: Exception) {
                 _formState.value = _formState.value.copy(
                     isLoading = false,
-                    errorMessage = "Lỗi khi xóa task: ${e.message}"
+                    errorMessage = "Failed to delete task: ${e.message}"
                 )
             }
         }
@@ -302,6 +302,14 @@ class TaskFormViewModel(
 
         viewModelScope.launch {
             try {
+                val context =
+                    getApplication<Application>().applicationContext
+
+                RecurrenceScheduler.cancelAlarm(
+                    context,
+                    state.taskId
+                )
+
                 repository.setTaskCompleted(
                     taskId = state.taskId,
                     completed = true
@@ -316,7 +324,7 @@ class TaskFormViewModel(
             } catch (e: Exception) {
                 _formState.value = _formState.value.copy(
                     isLoading = false,
-                    errorMessage = "Lỗi khi hoàn thành task: ${e.message}"
+                    errorMessage = "Failed to complete task: ${e.message}"
                 )
             }
         }

@@ -38,12 +38,12 @@ class BackupManager(
 
         context.contentResolver.openOutputStream(uri)?.use { out ->
             out.write(jsonArray.toString().toByteArray())
-        } ?: throw IOException("Không mở được file để ghi")
+        } ?: throw IOException("Unable to open file for writing")
     }
     suspend fun restoreTasks(uri: Uri): Result<Unit> = runCatching {
         val jsonText = context.contentResolver.openInputStream(uri)?.use {
             it.bufferedReader().readText()
-        } ?: throw IOException("Không đọc được file")
+        } ?: throw IOException("Unable to read file")
 
         val jsonArray = JSONArray(jsonText)
         val tasks = mutableListOf<TaskEntity>()

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <group android:id="@+id/groupStatusFilter" android:checkableBehavior="single">
-        <item android:id="@+id/menuStatusAll" android:title="Tất cả" android:checked="true" />
-        <item android:id="@+id/menuStatusPending" android:title="Chưa làm" />
-        <item android:id="@+id/menuStatusInProgress" android:title="Đang làm" />
-        <item android:id="@+id/menuStatusCompleted" android:title="Đã xong" />
+        <item android:id="@+id/menuStatusAll" android:title="All" android:checked="true" />
+        <item android:id="@+id/menuStatusPending" android:title="Pending" />
+        <item android:id="@+id/menuStatusInProgress" android:title="In progress" />
+        <item android:id="@+id/menuStatusCompleted" android:title="Completed" />
     </group>
 </menu>
