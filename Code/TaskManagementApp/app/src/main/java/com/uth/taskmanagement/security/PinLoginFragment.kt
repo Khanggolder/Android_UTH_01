@@ -83,7 +83,7 @@ class PinLoginFragment : Fragment() {
         if (remainingAttempts <= 0) {
             startLockout()
         } else {
-            showError("Sai mã PIN, còn $remainingAttempts lần thử")
+            showError("Wrong PIN, $remainingAttempts attempts left")
         }
     }
 
@@ -95,7 +95,7 @@ class PinLoginFragment : Fragment() {
         lockoutTimer = object : CountDownTimer(LOCKOUT_DURATION_MS, 1000) {
             override fun onTick(millisUntilFinished: Long) {
                 val secondsLeft = millisUntilFinished / 1000
-                showError("Nhập sai quá nhiều lần, thử lại sau ${secondsLeft}s")
+                showError("Too many attempts, try again in ${secondsLeft}s")
             }
 
             override fun onFinish() {
