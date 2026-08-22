@@ -12,6 +12,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.uth.taskmanagement.databinding.FragmentCalendarBinding
+import com.uth.taskmanagement.ui.taskform.TaskFormFragment
+import com.uth.taskmanagement.R
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.time.LocalDate
@@ -64,7 +66,10 @@ class CalendarFragment : Fragment() {
 
     private fun setupFab() {
         binding.fabAddTask.setOnClickListener {
-            Toast.makeText(requireContext(), "Task form will be connected by the task-form module.", Toast.LENGTH_SHORT).show()
+            requireActivity().supportFragmentManager.beginTransaction()
+                .replace(R.id.fragmentContainer, TaskFormFragment.newInstance())
+                .addToBackStack("task_form")
+                .commit()
         }
     }
 
