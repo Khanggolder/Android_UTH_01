@@ -45,10 +45,11 @@
             android:background="@drawable/bg_priority_high"
             android:paddingHorizontal="14dp"
             android:paddingVertical="10dp"
-            android:textColor="@color/priority_high"
+            android:textColor="@android:color/white"
             android:textSize="13sp"
+            android:textStyle="bold"
             android:visibility="gone"
-            tools:text="Title cannot be empty"
+            tools:text="Tiêu đề không được để trống"
             tools:visibility="visible" />
 
         <!-- Title -->

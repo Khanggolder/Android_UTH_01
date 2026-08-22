@@ -17,6 +17,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.uth.taskmanagement.TaskManagementApp
 import com.uth.taskmanagement.data.model.RecurrenceType
 import com.uth.taskmanagement.data.model.TaskPriority
@@ -98,7 +99,6 @@ class TaskFormFragment : Fragment() {
 
         if (taskId > 0L) {
             binding.tvFormTitle.text = "Edit Task"
-
             viewModel.loadTask(taskId)
         }
 
@@ -117,40 +117,28 @@ class TaskFormFragment : Fragment() {
 
         // Priority
         binding.btnPriorityLow.setOnClickListener {
-            viewModel.setPriority(
-                TaskPriority.LOW
-            )
+            viewModel.setPriority(TaskPriority.LOW)
         }
 
         binding.btnPriorityMedium.setOnClickListener {
-            viewModel.setPriority(
-                TaskPriority.MEDIUM
-            )
+            viewModel.setPriority(TaskPriority.MEDIUM)
         }
 
         binding.btnPriorityHigh.setOnClickListener {
-            viewModel.setPriority(
-                TaskPriority.HIGH
-            )
+            viewModel.setPriority(TaskPriority.HIGH)
         }
 
         // Status
         binding.btnStatusPending.setOnClickListener {
-            viewModel.setStatus(
-                TaskStatus.PENDING
-            )
+            viewModel.setStatus(TaskStatus.PENDING)
         }
 
         binding.btnStatusInProgress.setOnClickListener {
-            viewModel.setStatus(
-                TaskStatus.IN_PROGRESS
-            )
+            viewModel.setStatus(TaskStatus.IN_PROGRESS)
         }
 
         binding.btnStatusCompleted.setOnClickListener {
-            viewModel.setStatus(
-                TaskStatus.COMPLETED
-            )
+            viewModel.setStatus(TaskStatus.COMPLETED)
         }
 
         // Reminder
@@ -166,27 +154,19 @@ class TaskFormFragment : Fragment() {
 
         // Recurrence
         binding.btnRecurrenceNone.setOnClickListener {
-            viewModel.setRecurrenceType(
-                RecurrenceType.NONE
-            )
+            viewModel.setRecurrenceType(RecurrenceType.NONE)
         }
 
         binding.btnRecurrenceDaily.setOnClickListener {
-            viewModel.setRecurrenceType(
-                RecurrenceType.DAILY
-            )
+            viewModel.setRecurrenceType(RecurrenceType.DAILY)
         }
 
         binding.btnRecurrenceWeekly.setOnClickListener {
-            viewModel.setRecurrenceType(
-                RecurrenceType.WEEKLY
-            )
+            viewModel.setRecurrenceType(RecurrenceType.WEEKLY)
         }
 
         binding.btnRecurrenceMonthly.setOnClickListener {
-            viewModel.setRecurrenceType(
-                RecurrenceType.MONTHLY
-            )
+            viewModel.setRecurrenceType(RecurrenceType.MONTHLY)
         }
 
         // Title
@@ -261,13 +241,26 @@ class TaskFormFragment : Fragment() {
 
         // Delete
         binding.btnDelete.setOnClickListener {
-            viewModel.deleteTask()
+            showDeleteConfirmationDialog()
         }
 
         // Cancel
         binding.btnCancel.setOnClickListener {
             navigateBack()
         }
+    }
+
+    // ── Delete confirmation ───────────────────────────────────────────────
+
+    private fun showDeleteConfirmationDialog() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Delete Task")
+            .setMessage("Are you sure you want to delete this task?")
+            .setNegativeButton("Cancel", null)
+            .setPositiveButton("Delete") { _, _ ->
+                viewModel.deleteTask()
+            }
+            .show()
     }
 
     // ── Observe ViewModel state ───────────────────────────────────────────
@@ -280,49 +273,30 @@ class TaskFormFragment : Fragment() {
             ) {
                 viewModel.formState.collect { state ->
 
-                    // Title
                     if (
                         !binding.etTitle.isFocused &&
                         binding.etTitle.text.toString() != state.title
                     ) {
-                        binding.etTitle.setText(
-                            state.title
-                        )
-
-                        binding.etTitle.setSelection(
-                            state.title.length
-                        )
+                        binding.etTitle.setText(state.title)
+                        binding.etTitle.setSelection(state.title.length)
                     }
 
-                    // Description
                     if (
                         !binding.etDescription.isFocused &&
                         binding.etDescription.text.toString() != state.description
                     ) {
-                        binding.etDescription.setText(
-                            state.description
-                        )
+                        binding.etDescription.setText(state.description)
                     }
 
-                    // Due date/time
                     binding.tvDueDateTime.text =
                         dateTimeFormat.format(
                             Date(state.dueDateTime)
                         )
 
-                    // Priority
-                    updatePriorityButtons(
-                        state.priority
-                    )
+                    updatePriorityButtons(state.priority)
+                    updateStatusButtons(state.status)
 
-                    // Status
-                    updateStatusButtons(
-                        state.status
-                    )
-
-                    // Chỉ hiện Complete/Delete khi đang Edit
-                    val isEditMode =
-                        state.taskId > 0L
+                    val isEditMode = state.taskId > 0L
 
                     binding.btnDelete.visibility =
                         if (isEditMode) {
@@ -341,7 +315,6 @@ class TaskFormFragment : Fragment() {
                             View.GONE
                         }
 
-                    // Reminder
                     if (state.reminderTime != null) {
 
                         binding.tvReminderTime.text =
@@ -391,7 +364,6 @@ class TaskFormFragment : Fragment() {
                             View.GONE
                     }
 
-                    // Error
                     if (state.errorMessage != null) {
 
                         binding.tvError.text =
@@ -406,7 +378,6 @@ class TaskFormFragment : Fragment() {
                             View.GONE
                     }
 
-                    // Loading
                     binding.btnSave.isEnabled =
                         !state.isLoading
 
@@ -423,7 +394,6 @@ class TaskFormFragment : Fragment() {
                             "Save Task"
                         }
 
-                    // Save/Delete/Complete thành công
                     if (state.isSaved) {
                         navigateBack()
                     }
@@ -446,20 +416,9 @@ class TaskFormFragment : Fragment() {
             requireContext(),
             { _, year, month, dayOfMonth ->
 
-                cal.set(
-                    Calendar.YEAR,
-                    year
-                )
-
-                cal.set(
-                    Calendar.MONTH,
-                    month
-                )
-
-                cal.set(
-                    Calendar.DAY_OF_MONTH,
-                    dayOfMonth
-                )
+                cal.set(Calendar.YEAR, year)
+                cal.set(Calendar.MONTH, month)
+                cal.set(Calendar.DAY_OF_MONTH, dayOfMonth)
 
                 TimePickerDialog(
                     requireContext(),
@@ -484,24 +443,14 @@ class TaskFormFragment : Fragment() {
                             cal.timeInMillis
                         )
                     },
-                    cal.get(
-                        Calendar.HOUR_OF_DAY
-                    ),
-                    cal.get(
-                        Calendar.MINUTE
-                    ),
+                    cal.get(Calendar.HOUR_OF_DAY),
+                    cal.get(Calendar.MINUTE),
                     true
                 ).show()
             },
-            cal.get(
-                Calendar.YEAR
-            ),
-            cal.get(
-                Calendar.MONTH
-            ),
-            cal.get(
-                Calendar.DAY_OF_MONTH
-            )
+            cal.get(Calendar.YEAR),
+            cal.get(Calendar.MONTH),
+            cal.get(Calendar.DAY_OF_MONTH)
         ).show()
     }
 
@@ -520,20 +469,9 @@ class TaskFormFragment : Fragment() {
             requireContext(),
             { _, year, month, dayOfMonth ->
 
-                cal.set(
-                    Calendar.YEAR,
-                    year
-                )
-
-                cal.set(
-                    Calendar.MONTH,
-                    month
-                )
-
-                cal.set(
-                    Calendar.DAY_OF_MONTH,
-                    dayOfMonth
-                )
+                cal.set(Calendar.YEAR, year)
+                cal.set(Calendar.MONTH, month)
+                cal.set(Calendar.DAY_OF_MONTH, dayOfMonth)
 
                 TimePickerDialog(
                     requireContext(),
@@ -558,24 +496,14 @@ class TaskFormFragment : Fragment() {
                             cal.timeInMillis
                         )
                     },
-                    cal.get(
-                        Calendar.HOUR_OF_DAY
-                    ),
-                    cal.get(
-                        Calendar.MINUTE
-                    ),
+                    cal.get(Calendar.HOUR_OF_DAY),
+                    cal.get(Calendar.MINUTE),
                     true
                 ).show()
             },
-            cal.get(
-                Calendar.YEAR
-            ),
-            cal.get(
-                Calendar.MONTH
-            ),
-            cal.get(
-                Calendar.DAY_OF_MONTH
-            )
+            cal.get(Calendar.YEAR),
+            cal.get(Calendar.MONTH),
+            cal.get(Calendar.DAY_OF_MONTH)
         ).show()
     }
 
