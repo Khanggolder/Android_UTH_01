@@ -60,7 +60,10 @@ class SettingsFragment : Fragment() {
 
     private fun setupClickListeners() {
         binding.rowChangePin.setOnClickListener {
-            showMessage("PIN setup screen is a TODO for the security module.")
+            requireActivity().supportFragmentManager.beginTransaction()
+                .replace(R.id.fragmentContainer, PinSetupFragment())
+                .addToBackStack("pin_setup")
+                .commit()
         }
         binding.rowExport.setOnClickListener {
             exportLauncher.launch("tasks_backup_${System.currentTimeMillis()}.json")

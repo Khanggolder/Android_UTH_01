@@ -16,7 +16,7 @@
         android:paddingEnd="20dp"
         android:paddingBottom="32dp">
 
-        <!-- ── Header ── -->
+        <!-- Header -->
         <TextView
             android:id="@+id/tvFormTitle"
             android:layout_width="match_parent"
@@ -36,7 +36,7 @@
             android:textColor="@color/text_secondary"
             android:textSize="14sp" />
 
-        <!-- ── Error banner ── -->
+        <!-- Error -->
         <TextView
             android:id="@+id/tvError"
             android:layout_width="match_parent"
@@ -45,22 +45,23 @@
             android:background="@drawable/bg_priority_high"
             android:paddingHorizontal="14dp"
             android:paddingVertical="10dp"
-            android:textColor="@color/priority_high"
+            android:textColor="@android:color/white"
             android:textSize="13sp"
+            android:textStyle="bold"
             android:visibility="gone"
-            tools:text="Title cannot be empty"
+            tools:text="Tiêu đề không được để trống"
             tools:visibility="visible" />
 
-        <!-- ── Title field ── -->
+        <!-- Title -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="6dp"
+            android:letterSpacing="0.08"
             android:text="Title *"
-            android:textColor="@color/text_secondary"
-            android:textSize="12sp"
             android:textAllCaps="true"
-            android:letterSpacing="0.08" />
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp" />
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
@@ -84,18 +85,19 @@
                 android:textColor="@color/text_primary"
                 android:textColorHint="@color/text_secondary"
                 android:textSize="16sp" />
+
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- ── Description field ── -->
+        <!-- Description -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="6dp"
-            android:text="Description"
-            android:textColor="@color/text_secondary"
-            android:textSize="12sp"
+            android:letterSpacing="0.08"
+            android:text="Description *"
             android:textAllCaps="true"
-            android:letterSpacing="0.08" />
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp" />
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
@@ -113,25 +115,26 @@
                 android:layout_height="wrap_content"
                 android:background="@null"
                 android:gravity="top"
-                android:hint="Enter description (optional)"
+                android:hint="Enter description"
                 android:inputType="textMultiLine|textCapSentences"
                 android:minHeight="96dp"
                 android:padding="16dp"
                 android:textColor="@color/text_primary"
                 android:textColorHint="@color/text_secondary"
                 android:textSize="15sp" />
+
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- ── Due Date & Time ── -->
+        <!-- Due Date -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="6dp"
+            android:letterSpacing="0.08"
             android:text="Due Date &amp; Time"
-            android:textColor="@color/text_secondary"
-            android:textSize="12sp"
             android:textAllCaps="true"
-            android:letterSpacing="0.08" />
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp" />
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
@@ -175,19 +178,20 @@
                     android:layout_height="18dp"
                     android:src="@drawable/ic_chevron_right"
                     app:tint="@color/text_secondary" />
+
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- ── Priority ── -->
+        <!-- Priority -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="10dp"
+            android:letterSpacing="0.08"
             android:text="Priority"
-            android:textColor="@color/text_secondary"
-            android:textSize="12sp"
             android:textAllCaps="true"
-            android:letterSpacing="0.08" />
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp" />
 
         <LinearLayout
             android:id="@+id/priorityGroup"
@@ -227,18 +231,71 @@
                 android:text="High"
                 android:textSize="13sp"
                 app:strokeColor="@color/divider" />
+
         </LinearLayout>
 
-        <!-- ── Reminder Time ── -->
+        <!-- Status -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="10dp"
+            android:letterSpacing="0.08"
+            android:text="Status"
+            android:textAllCaps="true"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp" />
+
+        <LinearLayout
+            android:id="@+id/statusGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnStatusPending"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:text="Pending"
+                android:textSize="11sp"
+                app:strokeColor="@color/divider" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnStatusInProgress"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:text="In Progress"
+                android:textSize="11sp"
+                app:strokeColor="@color/divider" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnStatusCompleted"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:text="Completed"
+                android:textSize="11sp"
+                app:strokeColor="@color/divider" />
+
+        </LinearLayout>
+
+        <!-- Reminder -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="6dp"
+            android:letterSpacing="0.08"
             android:text="Reminder"
-            android:textColor="@color/text_secondary"
-            android:textSize="12sp"
             android:textAllCaps="true"
-            android:letterSpacing="0.08" />
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp" />
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
@@ -282,10 +339,10 @@
                     android:layout_height="18dp"
                     android:src="@drawable/ic_chevron_right"
                     app:tint="@color/text_secondary" />
+
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Clear reminder button -->
         <TextView
             android:id="@+id/tvClearReminder"
             android:layout_width="wrap_content"
@@ -297,17 +354,17 @@
             android:textSize="13sp"
             android:visibility="gone" />
 
-        <!-- ── Recurrence ── -->
+        <!-- Recurrence -->
         <TextView
             android:id="@+id/labelRecurrence"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="10dp"
+            android:letterSpacing="0.08"
             android:text="Repeat"
+            android:textAllCaps="true"
             android:textColor="@color/text_secondary"
             android:textSize="12sp"
-            android:textAllCaps="true"
-            android:letterSpacing="0.08"
             android:visibility="gone" />
 
         <LinearLayout
@@ -360,9 +417,35 @@
                 android:text="Monthly"
                 android:textSize="11sp"
                 app:strokeColor="@color/divider" />
+
         </LinearLayout>
 
-        <!-- ── Action buttons ── -->
+        <!-- Complete -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnComplete"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginBottom="12dp"
+            android:text="Mark Completed"
+            android:textSize="15sp"
+            android:visibility="gone"
+            app:strokeColor="@color/accent" />
+
+        <!-- Delete -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnDelete"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginBottom="16dp"
+            android:text="Delete Task"
+            android:textColor="@color/priority_high"
+            android:textSize="15sp"
+            android:visibility="gone"
+            app:strokeColor="@color/priority_high" />
+
+        <!-- Save / Cancel -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -387,7 +470,9 @@
                 android:text="Save Task"
                 android:textSize="15sp"
                 app:backgroundTint="@color/accent" />
+
         </LinearLayout>
 
     </LinearLayout>
+
 </ScrollView>
