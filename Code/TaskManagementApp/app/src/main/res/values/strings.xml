@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">TaskManagementApp</string>
+    <string name="accessibility_back">Back</string>
+    <string name="accessibility_delete_digit">Delete digit</string>
 </resources>

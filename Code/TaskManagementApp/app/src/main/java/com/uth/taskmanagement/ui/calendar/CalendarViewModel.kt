@@ -35,7 +35,22 @@ class CalendarViewModel(private val repo: TaskRepository) : ViewModel() {
         val dayEnd = date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli() - 1
 
         allTasks
-            .mapNotNull { task -> findOccurrenceInRange(task, dayStart, dayEnd) }
+            .flatMap { task ->
+                buildList {
+                    findOccurrenceInRange(task, dayStart, dayEnd)?.let(::add)
+                    task.reminderTime
+                        ?.takeIf { !task.isCompleted && it in dayStart..dayEnd }
+                        ?.let { reminderTime ->
+                            add(
+                                TaskOccurrence(
+                                    task = task,
+                                    occurrenceDateTime = reminderTime,
+                                    entryType = CalendarEntryType.REMINDER
+                                )
+                            )
+                        }
+                }
+            }
             .sortedBy { it.occurrenceDateTime }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -48,6 +63,17 @@ class CalendarViewModel(private val repo: TaskRepository) : ViewModel() {
                 RecurrenceScheduler.cancelAlarm(context, taskId)
             }
             repo.setTaskCompleted(taskId = taskId, completed = completed)
+            if (!completed) {
+                repo.getTaskById(taskId)?.let { task ->
+                    val scheduledTime = RecurrenceScheduler.scheduleReminderForTask(
+                        context = context,
+                        task = task
+                    )
+                    if (scheduledTime != null && scheduledTime != task.reminderTime) {
+                        repo.updateReminderTime(taskId, scheduledTime)
+                    }
+                }
+            }
         }
     }
     private fun findOccurrenceInRange(
@@ -55,7 +81,7 @@ class CalendarViewModel(private val repo: TaskRepository) : ViewModel() {
         rangeStart: Long,
         rangeEnd: Long
     ): TaskOccurrence? {
-        if (task.recurrenceType == RecurrenceType.NONE) {
+        if (task.recurrenceType == RecurrenceType.NONE || task.isCompleted) {
             return if (task.dueDateTime in rangeStart..rangeEnd) {
                 TaskOccurrence(task, task.dueDateTime)
             } else null

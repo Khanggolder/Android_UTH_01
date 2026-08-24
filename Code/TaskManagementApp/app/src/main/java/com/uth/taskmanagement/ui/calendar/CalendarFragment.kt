@@ -90,7 +90,11 @@ class CalendarFragment : Fragment() {
                         val isEmpty = occurrences.isEmpty()
                         binding.emptyState.visibility = if (isEmpty) View.VISIBLE else View.GONE
                         binding.rvTasksOfDay.visibility = if (isEmpty) View.GONE else View.VISIBLE
-                        binding.tvTaskCount.text = "${occurrences.size} tasks"
+                        binding.tvTaskCount.text = if (occurrences.size == 1) {
+                            "1 event"
+                        } else {
+                            "${occurrences.size} events"
+                        }
                     }
                 }
             }

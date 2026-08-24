@@ -68,7 +68,7 @@ object TaskListStateMapper {
      */
     fun mapError(throwable: Throwable): TaskListUiState.Error {
         return TaskListUiState.Error(
-            message = throwable.message ?: "Da xay ra loi khi tai danh sach task."
+            message = throwable.message ?: "Unable to load tasks. Please try again."
         )
     }
 }

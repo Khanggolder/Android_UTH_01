@@ -1,11 +1,16 @@
 package com.uth.taskmanagement.notification
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import com.uth.taskmanagement.MainActivity
 import com.uth.taskmanagement.R
 
@@ -37,7 +42,20 @@ object NotificationHelper {
         notificationId: Int,
         title: String,
         content: String
-    ) {
+    ): Boolean {
+        if (
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return false
+        }
+
+        val notificationManager = NotificationManagerCompat.from(context)
+        if (!notificationManager.areNotificationsEnabled()) return false
+
         createNotificationChannel(context)
 
         // Mở MainActivity khi nhấn vào thông báo
@@ -58,8 +76,7 @@ object NotificationHelper {
             .setAutoCancel(true)
             .build()
 
-        val notificationManager =
-            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.notify(notificationId, notification)
+        return true
     }
 }

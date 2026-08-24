@@ -106,8 +106,7 @@ class TaskRepository(
         taskDao.getActiveReminderTasks()
 
     suspend fun replaceAllTasks(tasks: List<TaskEntity>) {
-        taskDao.deleteAllTasks()
-        taskDao.insertTasks(tasks)
+        taskDao.replaceAllTasks(tasks)
     }
 
     suspend fun updateReminderTime(taskId: Long, reminderTime: Long) =
