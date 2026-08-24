@@ -63,6 +63,8 @@
                     android:layout_width="13dp"
                     android:layout_height="13dp"
                     android:layout_marginStart="6dp"
+                    android:contentDescription="@null"
+                    android:importantForAccessibility="no"
                     android:src="@drawable/ic_clock"
                     app:tint="@color/text_secondary" />
 
@@ -84,7 +86,7 @@
                     android:paddingHorizontal="8dp"
                     android:paddingVertical="2dp"
                     android:textColor="@color/accent"
-                    android:textSize="10sp"
+                    android:textSize="11sp"
                     android:textStyle="bold"
                     android:visibility="gone"
                     tools:text="Weekly"

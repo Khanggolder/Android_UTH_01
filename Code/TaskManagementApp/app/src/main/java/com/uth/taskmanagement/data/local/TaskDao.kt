@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import com.uth.taskmanagement.data.model.TaskEntity
 import com.uth.taskmanagement.data.model.TaskPriority
@@ -109,6 +110,12 @@ interface TaskDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTasks(tasks: List<TaskEntity>)
+
+    @Transaction
+    suspend fun replaceAllTasks(tasks: List<TaskEntity>) {
+        deleteAllTasks()
+        insertTasks(tasks)
+    }
 
     @Query(
         """

@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import com.uth.taskmanagement.data.model.RecurrenceType
+import com.uth.taskmanagement.data.model.TaskEntity
 import com.uth.taskmanagement.notification.ReminderReceiver
 import java.util.Calendar
 
@@ -22,6 +23,49 @@ object RecurrenceScheduler {
             RecurrenceType.NONE -> return null
         }
         return calendar.timeInMillis
+    }
+
+    fun calculateNextFutureReminderTime(
+        reminderTime: Long,
+        recurrenceType: RecurrenceType,
+        currentTime: Long = System.currentTimeMillis()
+    ): Long? {
+        if (reminderTime > currentTime) return reminderTime
+        if (recurrenceType == RecurrenceType.NONE) return null
+
+        var nextTime = reminderTime
+        var attempts = 0
+        do {
+            val previousTime = nextTime
+            nextTime = calculateNextReminderTime(nextTime, recurrenceType) ?: return null
+            if (nextTime <= previousTime) return null
+            attempts++
+        } while (nextTime <= currentTime && attempts < MAX_CATCH_UP_OCCURRENCES)
+
+        return nextTime.takeIf { it > currentTime }
+    }
+
+    fun scheduleReminderForTask(
+        context: Context,
+        task: TaskEntity,
+        currentTime: Long = System.currentTimeMillis()
+    ): Long? {
+        if (task.isCompleted || task.id <= 0L) return null
+        val reminderTime = task.reminderTime ?: return null
+        val triggerTime = calculateNextFutureReminderTime(
+            reminderTime = reminderTime,
+            recurrenceType = task.recurrenceType,
+            currentTime = currentTime
+        ) ?: return null
+
+        scheduleNextAlarm(
+            context = context,
+            taskId = task.id,
+            title = task.title,
+            description = task.description,
+            triggerTimeMillis = triggerTime
+        )
+        return triggerTime
     }
 
     fun scheduleNextAlarm(
@@ -84,4 +128,6 @@ object RecurrenceScheduler {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
     }
+
+    private const val MAX_CATCH_UP_OCCURRENCES = 100_000
 }

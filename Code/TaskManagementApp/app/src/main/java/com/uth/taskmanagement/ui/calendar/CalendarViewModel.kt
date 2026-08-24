@@ -39,7 +39,7 @@ class CalendarViewModel(private val repo: TaskRepository) : ViewModel() {
                 buildList {
                     findOccurrenceInRange(task, dayStart, dayEnd)?.let(::add)
                     task.reminderTime
-                        ?.takeIf { it in dayStart..dayEnd }
+                        ?.takeIf { !task.isCompleted && it in dayStart..dayEnd }
                         ?.let { reminderTime ->
                             add(
                                 TaskOccurrence(
@@ -63,6 +63,17 @@ class CalendarViewModel(private val repo: TaskRepository) : ViewModel() {
                 RecurrenceScheduler.cancelAlarm(context, taskId)
             }
             repo.setTaskCompleted(taskId = taskId, completed = completed)
+            if (!completed) {
+                repo.getTaskById(taskId)?.let { task ->
+                    val scheduledTime = RecurrenceScheduler.scheduleReminderForTask(
+                        context = context,
+                        task = task
+                    )
+                    if (scheduledTime != null && scheduledTime != task.reminderTime) {
+                        repo.updateReminderTime(taskId, scheduledTime)
+                    }
+                }
+            }
         }
     }
     private fun findOccurrenceInRange(
@@ -70,7 +81,7 @@ class CalendarViewModel(private val repo: TaskRepository) : ViewModel() {
         rangeStart: Long,
         rangeEnd: Long
     ): TaskOccurrence? {
-        if (task.recurrenceType == RecurrenceType.NONE) {
+        if (task.recurrenceType == RecurrenceType.NONE || task.isCompleted) {
             return if (task.dueDateTime in rangeStart..rangeEnd) {
                 TaskOccurrence(task, task.dueDateTime)
             } else null

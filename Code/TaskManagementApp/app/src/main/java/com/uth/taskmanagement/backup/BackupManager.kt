@@ -7,6 +7,7 @@ import com.uth.taskmanagement.data.model.TaskPriority
 import com.uth.taskmanagement.data.model.TaskStatus
 import com.uth.taskmanagement.data.model.RecurrenceType
 import com.uth.taskmanagement.data.repository.TaskRepository
+import com.uth.taskmanagement.recurrence.RecurrenceScheduler
 import kotlinx.coroutines.flow.first
 import org.json.JSONArray
 import org.json.JSONObject
@@ -67,6 +68,21 @@ class BackupManager(
             )
         }
 
+        val existingTasks = repo.getAllTasks()
         repo.replaceAllTasks(tasks)
+
+        existingTasks.forEach { task ->
+            RecurrenceScheduler.cancelAlarm(context, task.id)
+        }
+
+        tasks.forEach { task ->
+            val scheduledTime = RecurrenceScheduler.scheduleReminderForTask(
+                context = context,
+                task = task
+            )
+            if (scheduledTime != null && scheduledTime != task.reminderTime) {
+                repo.updateReminderTime(task.id, scheduledTime)
+            }
+        }
     }
 }

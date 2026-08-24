@@ -40,7 +40,7 @@ enum class TaskSortOption {
 
 /**
  * Utils thuan (khong phu thuoc Android framework) de loc va sap xep task,
- * dung chung cho TaskListViewModel (TV2) va TaskListFragment (TV2) hien thi.
+ * dung chung cho TaskListViewModel (TV2) va TaskListFragment hien thi.
  */
 object TaskFilterSortUtils {
 
@@ -53,7 +53,7 @@ object TaskFilterSortUtils {
 
     fun isDueToday(task: TaskEntity, currentTime: Long  = System.currentTimeMillis()): Boolean {
         val startOfDay = startOfDay(currentTime)
-        val endOfDay = startOfDay + DAY_IN_MILLIS
+        val endOfDay = startOfNextDay(currentTime)
         return task.dueDateTime >= startOfDay && task.dueDateTime < endOfDay
     }
     fun filterByStatus(
@@ -90,7 +90,9 @@ object TaskFilterSortUtils {
             TaskDueDateFilter.ALL -> tasks
             TaskDueDateFilter.OVERDUE -> tasks.filter { isOverdue (it, currentTime) }
             TaskDueDateFilter.DUE_TODAY -> tasks.filter { isDueToday(it, currentTime) }
-            TaskDueDateFilter.UPCOMING -> tasks.filter { !isOverdue(it, currentTime) && !isDueToday(it, currentTime) }
+            TaskDueDateFilter.UPCOMING -> tasks.filter {
+                it.dueDateTime >= startOfNextDay(currentTime)
+            }
         }
     }
     fun sort(
@@ -136,14 +138,21 @@ object TaskFilterSortUtils {
         return tasks.groupingBy { it.priority }.eachCount()
     }
 
-    private  const val DAY_IN_MILLIS = 24L * 60 * 60 * 1000
-
     private  fun startOfDay(timeMillis: Long): Long {
         val  calendar = java.util.Calendar.getInstance()
         calendar.timeInMillis = timeMillis
         calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
         calendar.set(java.util.Calendar.MINUTE,0)
         calendar.set(java.util.Calendar.SECOND,0)
+        calendar.set(java.util.Calendar.MILLISECOND,0)
         return  calendar.timeInMillis
+    }
+
+    private fun startOfNextDay(timeMillis: Long): Long {
+        val calendar = java.util.Calendar.getInstance().apply {
+            this.timeInMillis = startOfDay(timeMillis)
+            add(java.util.Calendar.DAY_OF_MONTH, 1)
+        }
+        return calendar.timeInMillis
     }
 }

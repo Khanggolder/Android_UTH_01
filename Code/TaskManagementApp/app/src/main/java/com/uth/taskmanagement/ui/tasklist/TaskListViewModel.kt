@@ -133,6 +133,17 @@ class TaskListViewModel(
                 taskId = taskId,
                 completed = completed
             )
+            if (!completed) {
+                repository.getTaskById(taskId)?.let { task ->
+                    val scheduledTime = RecurrenceScheduler.scheduleReminderForTask(
+                        context = context,
+                        task = task
+                    )
+                    if (scheduledTime != null && scheduledTime != task.reminderTime) {
+                        repository.updateReminderTime(taskId, scheduledTime)
+                    }
+                }
+            }
         }
     }
 

@@ -141,6 +141,28 @@ class TaskFormViewModel(
             return
         }
 
+        if (
+            state.status != TaskStatus.COMPLETED &&
+            state.reminderTime != null &&
+            state.reminderTime <= System.currentTimeMillis()
+        ) {
+            _formState.value = state.copy(
+                errorMessage = "Reminder time must be in the future"
+            )
+            return
+        }
+
+        if (
+            state.status != TaskStatus.COMPLETED &&
+            state.reminderTime != null &&
+            state.reminderTime > state.dueDateTime
+        ) {
+            _formState.value = state.copy(
+                errorMessage = "Reminder time cannot be after the due date"
+            )
+            return
+        }
+
         _formState.value = state.copy(
             isLoading = true,
             errorMessage = null
@@ -177,7 +199,8 @@ class TaskFormViewModel(
                     // Schedule reminder nếu có
                     if (
                         reminderTime != null &&
-                        reminderTime > System.currentTimeMillis()
+                        reminderTime > System.currentTimeMillis() &&
+                        state.status != TaskStatus.COMPLETED
                     ) {
                         RecurrenceScheduler.scheduleNextAlarm(
                             context = context,
@@ -222,7 +245,8 @@ class TaskFormViewModel(
                     // Schedule lại nếu có reminder
                     if (
                         reminderTime != null &&
-                        reminderTime > System.currentTimeMillis()
+                        reminderTime > System.currentTimeMillis() &&
+                        state.status != TaskStatus.COMPLETED
                     ) {
                         RecurrenceScheduler.scheduleNextAlarm(
                             context = context,
@@ -334,16 +358,6 @@ class TaskFormViewModel(
 
     fun clearReminder() {
         val state = _formState.value
-
-        if (state.taskId > 0L) {
-            val context =
-                getApplication<Application>().applicationContext
-
-            RecurrenceScheduler.cancelAlarm(
-                context,
-                state.taskId
-            )
-        }
 
         _formState.value = state.copy(
             reminderTime = null,

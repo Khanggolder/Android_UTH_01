@@ -37,14 +37,11 @@ class BootReceiver : BroadcastReceiver() {
                     val reminderTime = task.reminderTime ?: continue
 
                     // Nếu thời gian nhắc đã qua, tính lại theo chu kỳ
-                    val nextTime = if (reminderTime > now) {
-                        reminderTime
-                    } else {
-                        RecurrenceScheduler.calculateNextReminderTime(
-                            reminderTime,
-                            task.recurrenceType
-                        ) ?: continue
-                    }
+                    val nextTime = RecurrenceScheduler.calculateNextFutureReminderTime(
+                        reminderTime = reminderTime,
+                        recurrenceType = task.recurrenceType,
+                        currentTime = now
+                    ) ?: continue
 
                     // Cập nhật DB nếu thời gian đã thay đổi
                     if (nextTime != reminderTime) {
