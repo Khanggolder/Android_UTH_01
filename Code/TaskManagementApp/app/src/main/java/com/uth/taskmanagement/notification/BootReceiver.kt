@@ -17,6 +17,7 @@ class BootReceiver : BroadcastReceiver() {
         val action = intent.action ?: return
         val supported = action == Intent.ACTION_BOOT_COMPLETED
                 || action == Intent.ACTION_TIME_CHANGED
+                || action == Intent.ACTION_DATE_CHANGED
                 || action == "android.intent.action.TIMEZONE_CHANGED"
 
         if (!supported) return
