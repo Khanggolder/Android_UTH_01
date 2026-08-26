@@ -28,8 +28,6 @@ class TimelineAdapter(
 
         fun bind(task: TaskEntity) {
 
-            binding.tvTaskTitle.text = task.title
-
             val context = binding.root.context
 
             val dayWidthPx =

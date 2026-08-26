@@ -1,33 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<LinearLayout
+<FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="wrap_content"
-    android:layout_height="64dp"
-    android:gravity="center_vertical"
-    android:orientation="horizontal">
+    android:id="@+id/timelineContainer"
+    android:layout_width="1400dp"
+    android:layout_height="64dp">
 
-    <TextView
-        android:id="@+id/tvTaskTitle"
-        android:layout_width="140dp"
-        android:layout_height="match_parent"
-        android:gravity="center_vertical"
-        android:maxLines="1"
-        android:paddingHorizontal="12dp"
-        android:textStyle="bold" />
+    <View
+        android:id="@+id/timelineBar"
+        android:layout_width="100dp"
+        android:layout_height="28dp"
+        android:layout_gravity="center_vertical"
+        android:background="@color/accent" />
 
-    <FrameLayout
-        android:id="@+id/timelineContainer"
-        android:layout_width="1400dp"
-        android:layout_height="match_parent">
-
-        <View
-            android:id="@+id/timelineBar"
-            android:layout_width="100dp"
-            android:layout_height="28dp"
-            android:layout_gravity="center_vertical"
-            android:background="@color/accent" />
-
-    </FrameLayout>
-
-</LinearLayout>
+</FrameLayout>

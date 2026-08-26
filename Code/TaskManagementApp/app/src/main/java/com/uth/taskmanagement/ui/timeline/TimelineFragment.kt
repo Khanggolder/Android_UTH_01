@@ -16,6 +16,7 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+import androidx.recyclerview.widget.RecyclerView
 
 class TimelineFragment : Fragment() {
 
@@ -28,6 +29,8 @@ class TimelineFragment : Fragment() {
         private const val EXTRA_DAYS_BEFORE = 2
         private const val EXTRA_DAYS_AFTER = 5
     }
+
+    private var taskNameAdapter: TimelineTaskNameAdapter? = null
 
     private var _binding: FragmentTimelineBinding? = null
 
@@ -74,7 +77,12 @@ class TimelineFragment : Fragment() {
 
         setupRecyclerView()
 
+        syncVerticalScroll()
+
+        syncHorizontalScroll()
+
         observeTasks()
+        
     }
 
     // ─────────────────────────────────────────────
@@ -102,10 +110,17 @@ class TimelineFragment : Fragment() {
 
     private fun setupRecyclerView() {
 
+        binding.rvTaskNames.layoutManager =
+            LinearLayoutManager(requireContext())
+
         binding.rvTimeline.layoutManager =
-            LinearLayoutManager(
-                requireContext()
-            )
+            LinearLayoutManager(requireContext())
+
+        taskNameAdapter =
+            TimelineTaskNameAdapter()
+
+        binding.rvTaskNames.adapter =
+            taskNameAdapter
     }
 
     // ─────────────────────────────────────────────
@@ -123,9 +138,13 @@ class TimelineFragment : Fragment() {
                 binding.dateHeaderContainer
                     .removeAllViews()
 
-                timelineAdapter = null
+                taskNameAdapter?.submitList(
+                    emptyList()
+                )
 
-                binding.rvTimeline.adapter = null
+                timelineAdapter?.submitList(
+                    emptyList()
+                )
 
                 return@observe
             }
@@ -210,11 +229,19 @@ class TimelineFragment : Fragment() {
         /*
          * Sắp xếp task theo Start Date.
          */
-        timelineAdapter?.submitList(
+        val sortedTasks =
             tasks.sortedBy {
                 it.startDateTime
             }
+
+        taskNameAdapter?.submitList(
+            sortedTasks
         )
+
+        timelineAdapter?.submitList(
+            sortedTasks
+        )
+
     }
 
     // ─────────────────────────────────────────────
@@ -228,27 +255,6 @@ class TimelineFragment : Fragment() {
 
         binding.dateHeaderContainer
             .removeAllViews()
-
-        /*
-         * Vì item timeline có 140dp dành cho
-         * tên Task nên Header cũng cần khoảng
-         * trống 140dp ở bên trái.
-         */
-        val taskNameSpacer =
-            View(
-                requireContext()
-            )
-
-        taskNameSpacer.layoutParams =
-            ViewGroup.LayoutParams(
-                dpToPx(140),
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
-
-        binding.dateHeaderContainer
-            .addView(
-                taskNameSpacer
-            )
 
         val totalDays =
             daysBetween(
@@ -392,5 +398,81 @@ class TimelineFragment : Fragment() {
 
         _binding =
             null
+
+        binding.rvTaskNames.adapter = null
+
+        taskNameAdapter = null
+    }
+
+    // ─────────────────────────────────────────────
+    // Scrolls
+    // ─────────────────────────────────────────────
+
+    private fun syncVerticalScroll() {
+
+        binding.rvTaskNames.addOnScrollListener(
+            object : RecyclerView.OnScrollListener() {
+
+                override fun onScrolled(
+                    recyclerView: RecyclerView,
+                    dx: Int,
+                    dy: Int
+                ) {
+                    if (dy != 0) {
+                        binding.rvTimeline.scrollBy(
+                            0,
+                            dy
+                        )
+                    }
+                }
+            }
+        )
+
+        binding.rvTimeline.addOnScrollListener(
+            object : RecyclerView.OnScrollListener() {
+
+                override fun onScrolled(
+                    recyclerView: RecyclerView,
+                    dx: Int,
+                    dy: Int
+                ) {
+                    if (dy != 0) {
+                        binding.rvTaskNames.scrollBy(
+                            0,
+                            dy
+                        )
+                    }
+                }
+            }
+        )
+    }
+
+    private fun syncHorizontalScroll() {
+
+        binding.timelineScroll.setOnScrollChangeListener {
+                _,
+                scrollX,
+                _,
+                _,
+                _ ->
+
+            binding.headerScroll.scrollTo(
+                scrollX,
+                0
+            )
+        }
+
+        binding.headerScroll.setOnScrollChangeListener {
+                _,
+                scrollX,
+                _,
+                _,
+                _ ->
+
+            binding.timelineScroll.scrollTo(
+                scrollX,
+                0
+            )
+        }
     }
 }
