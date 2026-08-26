@@ -10,6 +10,9 @@ import com.uth.taskmanagement.data.model.TaskEntity
 import com.uth.taskmanagement.databinding.ItemTimelineTaskBinding
 import java.util.concurrent.TimeUnit
 import kotlin.math.max
+import androidx.core.content.ContextCompat
+import com.uth.taskmanagement.R
+import com.uth.taskmanagement.data.model.TaskStatus
 
 class TimelineAdapter(
     private val timelineStart: Long,
@@ -30,6 +33,26 @@ class TimelineAdapter(
         fun bind(task: TaskEntity) {
 
             val context = binding.root.context
+
+            val barColorRes =
+                when (task.status) {
+
+                    TaskStatus.PENDING ->
+                        R.color.timeline_pending
+
+                    TaskStatus.IN_PROGRESS ->
+                        R.color.timeline_in_progress
+
+                    TaskStatus.COMPLETED ->
+                        R.color.timeline_completed
+                }
+
+            binding.timelineBar.setBackgroundColor(
+                ContextCompat.getColor(
+                    context,
+                    barColorRes
+                )
+            )
 
             val dayWidthPx =
                 (DAY_WIDTH_DP * context.resources.displayMetrics.density)
