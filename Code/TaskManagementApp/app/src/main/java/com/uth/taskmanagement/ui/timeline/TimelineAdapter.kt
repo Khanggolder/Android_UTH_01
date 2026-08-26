@@ -34,16 +34,23 @@ class TimelineAdapter(
 
             val context = binding.root.context
 
-            val barColorRes =
-                when (task.status) {
+            val isOverdue =
+                task.dueDateTime < System.currentTimeMillis() &&
+                    task.status != TaskStatus.COMPLETED
 
-                    TaskStatus.PENDING ->
+            val barColorRes =
+                when {
+
+                    isOverdue ->
+                        R.color.timeline_overdue
+
+                    task.status == TaskStatus.PENDING ->
                         R.color.timeline_pending
 
-                    TaskStatus.IN_PROGRESS ->
+                    task.status == TaskStatus.IN_PROGRESS ->
                         R.color.timeline_in_progress
 
-                    TaskStatus.COMPLETED ->
+                    else ->
                         R.color.timeline_completed
                 }
 

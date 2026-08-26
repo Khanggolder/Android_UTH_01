@@ -45,6 +45,14 @@
             android:drawablePadding="6dp"
             android:text="Completed"
             android:textSize="12sp" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:drawableStart="@drawable/bg_legend_overdue"
+            android:drawablePadding="6dp"
+            android:text="Overdue"
+            android:textSize="12sp" />
 
     </LinearLayout>
     <!-- Header -->

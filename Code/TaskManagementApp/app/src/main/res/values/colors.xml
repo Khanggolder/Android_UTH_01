@@ -19,4 +19,5 @@
     <color name="timeline_pending">#F59E0B</color>
     <color name="timeline_in_progress">#2196F3</color>
     <color name="timeline_completed">#4CAF50</color>
+    <color name="timeline_overdue">#E53935</color>
 </resources>
