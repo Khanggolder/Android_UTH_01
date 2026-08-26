@@ -12,10 +12,10 @@ import java.util.concurrent.TimeUnit
 import kotlin.math.max
 
 class TimelineAdapter(
-    private val timelineStart: Long
-) : ListAdapter<TaskEntity, TimelineAdapter.TimelineViewHolder>(
-    DiffCallback()
-) {
+    private val timelineStart: Long,
+    private val totalDays: Int
+) : ListAdapter<TaskEntity, TimelineAdapter.TimelineViewHolder>(DiffCallback())
+{
 
     companion object {
         private const val DAY_WIDTH_DP = 80
@@ -61,6 +61,26 @@ class TimelineAdapter(
                     1,
                     durationDays.toInt()
                 ) * dayWidthPx
+
+            binding.gridContainer.removeAllViews()
+
+            repeat(totalDays) {
+
+                val gridCell =
+                    android.view.View(context)
+
+                gridCell.layoutParams =
+                    android.widget.LinearLayout.LayoutParams(
+                        dayWidthPx,
+                        android.view.ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+
+                gridCell.setBackgroundResource(
+                    com.uth.taskmanagement.R.drawable.bg_timeline_grid_cell
+                )
+
+                binding.gridContainer.addView(gridCell)
+            }
 
             val params =
                 binding.timelineBar.layoutParams

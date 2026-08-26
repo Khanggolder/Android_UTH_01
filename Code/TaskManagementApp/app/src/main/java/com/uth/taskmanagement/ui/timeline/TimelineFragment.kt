@@ -161,25 +161,16 @@ class TimelineFragment : Fragment() {
         tasks: List<TaskEntity>
     ) {
 
-        /*
-         * Tìm Start Date sớm nhất.
-         */
         val earliestTaskStart =
             tasks.minOf {
                 it.startDateTime
             }
 
-        /*
-         * Tìm Due Date muộn nhất.
-         */
         val latestTaskEnd =
             tasks.maxOf {
                 it.dueDateTime
             }
 
-        /*
-         * Chuẩn hóa về đầu ngày.
-         */
         var timelineStart =
             startOfDay(
                 earliestTaskStart
@@ -190,45 +181,39 @@ class TimelineFragment : Fragment() {
                 latestTaskEnd
             )
 
-        /*
-         * Cho thêm vài ngày trước task đầu tiên
-         * để giao diện dễ nhìn hơn.
-         */
         timelineStart =
             addDays(
                 timelineStart,
                 -EXTRA_DAYS_BEFORE
             )
 
-        /*
-         * Cho thêm vài ngày sau deadline cuối.
-         */
         timelineEnd =
             addDays(
                 timelineEnd,
                 EXTRA_DAYS_AFTER
             )
 
+        // PHẢI ĐẶT Ở ĐÂY
+        val totalDays =
+            daysBetween(
+                timelineStart,
+                timelineEnd
+            ).toInt() + 1
+
         createDateHeader(
             timelineStart,
             timelineEnd
         )
 
-        /*
-         * Adapter cần biết timeline bắt đầu
-         * từ ngày nào để tính leftMargin.
-         */
         timelineAdapter =
             TimelineAdapter(
-                timelineStart
+                timelineStart,
+                totalDays
             )
 
         binding.rvTimeline.adapter =
             timelineAdapter
 
-        /*
-         * Sắp xếp task theo Start Date.
-         */
         val sortedTasks =
             tasks.sortedBy {
                 it.startDateTime
@@ -241,7 +226,6 @@ class TimelineFragment : Fragment() {
         timelineAdapter?.submitList(
             sortedTasks
         )
-
     }
 
     // ─────────────────────────────────────────────
