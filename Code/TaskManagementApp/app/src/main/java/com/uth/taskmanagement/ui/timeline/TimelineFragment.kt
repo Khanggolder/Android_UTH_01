@@ -181,6 +181,11 @@ class TimelineFragment : Fragment() {
                 latestTaskEnd
             )
 
+        val today =
+            startOfDay(
+                System.currentTimeMillis()
+            )
+
         timelineStart =
             addDays(
                 timelineStart,
@@ -193,7 +198,6 @@ class TimelineFragment : Fragment() {
                 EXTRA_DAYS_AFTER
             )
 
-        // PHẢI ĐẶT Ở ĐÂY
         val totalDays =
             daysBetween(
                 timelineStart,
@@ -208,9 +212,9 @@ class TimelineFragment : Fragment() {
         timelineAdapter =
             TimelineAdapter(
                 timelineStart,
-                totalDays
+                totalDays,
+                today
             )
-
         binding.rvTimeline.adapter =
             timelineAdapter
 
@@ -246,6 +250,11 @@ class TimelineFragment : Fragment() {
                 timelineEnd
             )
 
+        val today =
+            startOfDay(
+                System.currentTimeMillis()
+            )
+
         for (dayIndex in 0..totalDays) {
 
             val currentDate =
@@ -278,6 +287,26 @@ class TimelineFragment : Fragment() {
                             ViewGroup.LayoutParams.MATCH_PARENT
                         )
                 }
+
+            if (currentDate == today) {
+
+                dateText.setBackgroundColor(
+                    android.graphics.Color.parseColor(
+                        "#E3F2FD"
+                    )
+                )
+
+                dateText.setTextColor(
+                    android.graphics.Color.parseColor(
+                        "#1565C0"
+                    )
+                )
+
+                dateText.setTypeface(
+                    null,
+                    android.graphics.Typeface.BOLD
+                )
+            }
 
             binding.dateHeaderContainer
                 .addView(

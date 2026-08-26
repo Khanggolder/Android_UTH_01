@@ -13,7 +13,8 @@ import kotlin.math.max
 
 class TimelineAdapter(
     private val timelineStart: Long,
-    private val totalDays: Int
+    private val totalDays: Int,
+    private val today: Long
 ) : ListAdapter<TaskEntity, TimelineAdapter.TimelineViewHolder>(DiffCallback())
 {
 
@@ -64,7 +65,7 @@ class TimelineAdapter(
 
             binding.gridContainer.removeAllViews()
 
-            repeat(totalDays) {
+            repeat(totalDays) { dayIndex ->
 
                 val gridCell =
                     android.view.View(context)
@@ -75,11 +76,30 @@ class TimelineAdapter(
                         android.view.ViewGroup.LayoutParams.MATCH_PARENT
                     )
 
-                gridCell.setBackgroundResource(
-                    com.uth.taskmanagement.R.drawable.bg_timeline_grid_cell
-                )
+                val cellDate =
+                    timelineStart +
+                        TimeUnit.DAYS.toMillis(
+                            dayIndex.toLong()
+                        )
 
-                binding.gridContainer.addView(gridCell)
+                if (cellDate == today) {
+
+                    gridCell.setBackgroundColor(
+                        android.graphics.Color.parseColor(
+                            "#E3F2FD"
+                        )
+                    )
+
+                } else {
+
+                    gridCell.setBackgroundResource(
+                        com.uth.taskmanagement.R.drawable.bg_timeline_grid_cell
+                    )
+                }
+
+                binding.gridContainer.addView(
+                    gridCell
+                )
             }
 
             val params =
