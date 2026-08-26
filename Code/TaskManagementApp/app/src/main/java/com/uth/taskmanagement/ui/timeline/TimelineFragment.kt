@@ -34,6 +34,9 @@ class TimelineFragment : Fragment() {
 
     private var _binding: FragmentTimelineBinding? = null
 
+    private var isSyncingScroll = false
+    private var isSyncingHorizontalScroll = false
+
     private val binding
         get() = _binding!!
 
@@ -396,69 +399,69 @@ class TimelineFragment : Fragment() {
     }
 
     // ─────────────────────────────────────────────
-    // Cleanup
-    // ─────────────────────────────────────────────
-
-    override fun onDestroyView() {
-
-        super.onDestroyView()
-
-        binding.rvTimeline.adapter =
-            null
-
-        timelineAdapter =
-            null
-
-        _binding =
-            null
-
-        binding.rvTaskNames.adapter = null
-
-        taskNameAdapter = null
-    }
-
-    // ─────────────────────────────────────────────
     // Scrolls
     // ─────────────────────────────────────────────
 
     private fun syncVerticalScroll() {
 
-        binding.rvTaskNames.addOnScrollListener(
-            object : RecyclerView.OnScrollListener() {
+    binding.rvTaskNames.addOnScrollListener(
+        object : RecyclerView.OnScrollListener() {
 
-                override fun onScrolled(
-                    recyclerView: RecyclerView,
-                    dx: Int,
-                    dy: Int
+            override fun onScrolled(
+                recyclerView: RecyclerView,
+                dx: Int,
+                dy: Int
+            ) {
+
+                if (
+                    dy == 0 ||
+                    isSyncingScroll ||
+                    _binding == null
                 ) {
-                    if (dy != 0) {
-                        binding.rvTimeline.scrollBy(
-                            0,
-                            dy
-                        )
-                    }
+                    return
                 }
+
+                isSyncingScroll = true
+
+                binding.rvTimeline.scrollBy(
+                    0,
+                    dy
+                )
+
+                isSyncingScroll = false
             }
-        )
+        }
+    )
 
-        binding.rvTimeline.addOnScrollListener(
-            object : RecyclerView.OnScrollListener() {
+    binding.rvTimeline.addOnScrollListener(
+        object : RecyclerView.OnScrollListener() {
 
-                override fun onScrolled(
-                    recyclerView: RecyclerView,
-                    dx: Int,
-                    dy: Int
+            override fun onScrolled(
+                recyclerView: RecyclerView,
+                dx: Int,
+                dy: Int
+            ) {
+
+                if (
+                    dy == 0 ||
+                    isSyncingScroll ||
+                    _binding == null
                 ) {
-                    if (dy != 0) {
-                        binding.rvTaskNames.scrollBy(
-                            0,
-                            dy
-                        )
-                    }
+                    return
                 }
+
+                isSyncingScroll = true
+
+                binding.rvTaskNames.scrollBy(
+                    0,
+                    dy
+                )
+
+                isSyncingScroll = false
             }
-        )
-    }
+        }
+    )
+}
 
     private fun syncHorizontalScroll() {
 
@@ -469,10 +472,21 @@ class TimelineFragment : Fragment() {
                 _,
                 _ ->
 
+            if (
+                isSyncingHorizontalScroll ||
+                _binding == null
+            ) {
+                return@setOnScrollChangeListener
+            }
+
+            isSyncingHorizontalScroll = true
+
             binding.headerScroll.scrollTo(
                 scrollX,
                 0
             )
+
+            isSyncingHorizontalScroll = false
         }
 
         binding.headerScroll.setOnScrollChangeListener {
@@ -482,10 +496,45 @@ class TimelineFragment : Fragment() {
                 _,
                 _ ->
 
+            if (
+                isSyncingHorizontalScroll ||
+                _binding == null
+            ) {
+                return@setOnScrollChangeListener
+            }
+
+            isSyncingHorizontalScroll = true
+
             binding.timelineScroll.scrollTo(
                 scrollX,
                 0
             )
+
+            isSyncingHorizontalScroll = false
         }
     }
-}
+
+    override fun onDestroyView() {
+
+        binding.timelineScroll.setOnScrollChangeListener(
+            null as View.OnScrollChangeListener?
+        )
+
+        binding.headerScroll.setOnScrollChangeListener(
+            null as View.OnScrollChangeListener?
+        )
+
+        binding.rvTaskNames.clearOnScrollListeners()
+        binding.rvTimeline.clearOnScrollListeners()
+
+        binding.rvTaskNames.adapter = null
+        binding.rvTimeline.adapter = null
+
+        taskNameAdapter = null
+        timelineAdapter = null
+
+        _binding = null
+
+        super.onDestroyView()
+    }
+    } 
