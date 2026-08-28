@@ -39,11 +39,32 @@ abstract class TaskDatabase : RoomDatabase() {
             }
         }
         private val MIGRATION_1_2 = object : Migration(1, 2) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+
+            override fun migrate(
+                db: SupportSQLiteDatabase
+            ) {
+
                 db.execSQL(
                     """
                     ALTER TABLE tasks
                     ADD COLUMN startDateTime INTEGER NOT NULL DEFAULT 0
+                    """.trimIndent()
+                )
+
+                
+                db.execSQL(
+                    """
+                    UPDATE tasks
+                    SET startDateTime = createdAt
+                    WHERE startDateTime = 0
+                    """.trimIndent()
+                )
+
+                db.execSQL(
+                    """
+                    UPDATE tasks
+                    SET startDateTime = dueDateTime
+                    WHERE startDateTime > dueDateTime
                     """.trimIndent()
                 )
             }
