@@ -28,6 +28,7 @@ class TimelineFragment : Fragment() {
         // trước và sau các task.
         private const val EXTRA_DAYS_BEFORE = 2
         private const val EXTRA_DAYS_AFTER = 5
+        private const val MAX_TIMELINE_DAYS = 180
     }
 
     private var taskNameAdapter: TimelineTaskNameAdapter? = null
@@ -164,13 +165,41 @@ class TimelineFragment : Fragment() {
         tasks: List<TaskEntity>
     ) {
 
+        val normalizedTasks =
+            tasks.map { task ->
+
+                val safeStart =
+                    when {
+                        task.startDateTime > 0L ->
+                            task.startDateTime
+
+                        task.createdAt > 0L ->
+                            task.createdAt
+
+                        else ->
+                            task.dueDateTime
+                    }
+
+                val safeDue =
+                    if (task.dueDateTime >= safeStart) {
+                        task.dueDateTime
+                    } else {
+                        safeStart
+                    }
+
+                task.copy(
+                    startDateTime = safeStart,
+                    dueDateTime = safeDue
+                )
+            }
+
         val earliestTaskStart =
-            tasks.minOf {
+            normalizedTasks.minOf {
                 it.startDateTime
             }
 
         val latestTaskEnd =
-            tasks.maxOf {
+            normalizedTasks.maxOf {
                 it.dueDateTime
             }
 
@@ -183,6 +212,21 @@ class TimelineFragment : Fragment() {
             startOfDay(
                 latestTaskEnd
             )
+
+        val timelineDays =
+            daysBetween(
+                timelineStart,
+                timelineEnd
+            ) + 1
+
+        if (timelineDays > MAX_TIMELINE_DAYS) {
+
+            timelineEnd =
+                addDays(
+                    timelineStart,
+                    MAX_TIMELINE_DAYS - 1
+                )
+        }
 
         val today =
             startOfDay(
@@ -222,7 +266,7 @@ class TimelineFragment : Fragment() {
             timelineAdapter
 
         val sortedTasks =
-            tasks.sortedBy {
+            normalizedTasks.sortedBy {
                 it.startDateTime
             }
 

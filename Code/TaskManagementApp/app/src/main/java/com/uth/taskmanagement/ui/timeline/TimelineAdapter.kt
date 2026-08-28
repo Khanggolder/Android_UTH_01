@@ -13,6 +13,7 @@ import kotlin.math.max
 import androidx.core.content.ContextCompat
 import com.uth.taskmanagement.R
 import com.uth.taskmanagement.data.model.TaskStatus
+import kotlin.math.min
 
 class TimelineAdapter(
     private val timelineStart: Long,
@@ -87,10 +88,16 @@ class TimelineAdapter(
                     startOffsetDays.toInt()
                 ) * dayWidthPx
 
+            val visibleDurationDays =
+                min(
+                    durationDays.toInt(),
+                    totalDays
+                )
+
             val barWidth =
                 max(
                     1,
-                    durationDays.toInt()
+                    visibleDurationDays
                 ) * dayWidthPx
 
             binding.gridContainer.removeAllViews()
