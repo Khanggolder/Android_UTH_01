@@ -12,24 +12,11 @@ import com.uth.taskmanagement.TaskManagementApp
 import com.uth.taskmanagement.data.model.TaskEntity
 import com.uth.taskmanagement.databinding.FragmentTimelineBinding
 import java.text.SimpleDateFormat
-import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import java.util.concurrent.TimeUnit
 import androidx.recyclerview.widget.RecyclerView
 
 class TimelineFragment : Fragment() {
-
-    companion object {
-
-        private const val DAY_WIDTH_DP = 80
-
-        // Tạm thời hiển thị thêm một ít ngày
-        // trước và sau các task.
-        private const val EXTRA_DAYS_BEFORE = 2
-        private const val EXTRA_DAYS_AFTER = 5
-        private const val MAX_TIMELINE_DAYS = 180
-    }
 
     private var taskNameAdapter: TimelineTaskNameAdapter? = null
 
@@ -164,118 +151,35 @@ class TimelineFragment : Fragment() {
     private fun setupTimeline(
         tasks: List<TaskEntity>
     ) {
-
-        val normalizedTasks =
-            tasks.map { task ->
-
-                val safeStart =
-                    when {
-                        task.startDateTime > 0L ->
-                            task.startDateTime
-
-                        task.createdAt > 0L ->
-                            task.createdAt
-
-                        else ->
-                            task.dueDateTime
-                    }
-
-                val safeDue =
-                    if (task.dueDateTime >= safeStart) {
-                        task.dueDateTime
-                    } else {
-                        safeStart
-                    }
-
-                task.copy(
-                    startDateTime = safeStart,
-                    dueDateTime = safeDue
-                )
-            }
-
-        val earliestTaskStart =
-            normalizedTasks.minOf {
-                it.startDateTime
-            }
-
-        val latestTaskEnd =
-            normalizedTasks.maxOf {
-                it.dueDateTime
-            }
-
-        var timelineStart =
-            startOfDay(
-                earliestTaskStart
-            )
-
-        var timelineEnd =
-            startOfDay(
-                latestTaskEnd
-            )
-
-        val timelineDays =
-            daysBetween(
-                timelineStart,
-                timelineEnd
-            ) + 1
-
-        if (timelineDays > MAX_TIMELINE_DAYS) {
-
-            timelineEnd =
-                addDays(
-                    timelineStart,
-                    MAX_TIMELINE_DAYS - 1
-                )
-        }
+        val layout =
+            TimelineLayoutCalculator.calculate(tasks)
+                ?: return
 
         val today =
-            startOfDay(
+            TimelineLayoutCalculator.startOfDay(
                 System.currentTimeMillis()
             )
 
-        timelineStart =
-            addDays(
-                timelineStart,
-                -EXTRA_DAYS_BEFORE
-            )
-
-        timelineEnd =
-            addDays(
-                timelineEnd,
-                EXTRA_DAYS_AFTER
-            )
-
-        val totalDays =
-            daysBetween(
-                timelineStart,
-                timelineEnd
-            ).toInt() + 1
-
         createDateHeader(
-            timelineStart,
-            timelineEnd
+            layout.timelineStart,
+            layout.totalDays
         )
 
         timelineAdapter =
             TimelineAdapter(
-                timelineStart,
-                totalDays,
+                layout.timelineStart,
+                layout.totalDays,
                 today
             )
         binding.rvTimeline.adapter =
             timelineAdapter
 
-        val sortedTasks =
-            normalizedTasks.sortedBy {
-                it.startDateTime
-            }
-
         taskNameAdapter?.submitList(
-            sortedTasks
+            layout.tasks
         )
 
         timelineAdapter?.submitList(
-            sortedTasks
+            layout.tasks
         )
     }
 
@@ -285,29 +189,23 @@ class TimelineFragment : Fragment() {
 
     private fun createDateHeader(
         timelineStart: Long,
-        timelineEnd: Long
+        totalDays: Int
     ) {
 
         binding.dateHeaderContainer
             .removeAllViews()
 
-        val totalDays =
-            daysBetween(
-                timelineStart,
-                timelineEnd
-            )
-
         val today =
-            startOfDay(
+            TimelineLayoutCalculator.startOfDay(
                 System.currentTimeMillis()
             )
 
-        for (dayIndex in 0..totalDays) {
+        for (dayIndex in 0 until totalDays) {
 
             val currentDate =
-                addDays(
+                TimelineLayoutCalculator.addDays(
                     timelineStart,
-                    dayIndex.toInt()
+                    dayIndex.toLong()
                 )
 
             val dateText =
@@ -329,7 +227,7 @@ class TimelineFragment : Fragment() {
                     layoutParams =
                         ViewGroup.LayoutParams(
                             dpToPx(
-                                DAY_WIDTH_DP
+                                TimelineLayoutCalculator.DAY_WIDTH_DP
                             ),
                             ViewGroup.LayoutParams.MATCH_PARENT
                         )
@@ -365,72 +263,6 @@ class TimelineFragment : Fragment() {
     // ─────────────────────────────────────────────
     // Date Utilities
     // ─────────────────────────────────────────────
-
-    private fun startOfDay(
-        millis: Long
-    ): Long {
-
-        val calendar =
-            Calendar.getInstance().apply {
-
-                timeInMillis =
-                    millis
-
-                set(
-                    Calendar.HOUR_OF_DAY,
-                    0
-                )
-
-                set(
-                    Calendar.MINUTE,
-                    0
-                )
-
-                set(
-                    Calendar.SECOND,
-                    0
-                )
-
-                set(
-                    Calendar.MILLISECOND,
-                    0
-                )
-            }
-
-        return calendar.timeInMillis
-    }
-
-    private fun addDays(
-        millis: Long,
-        days: Int
-    ): Long {
-
-        val calendar =
-            Calendar.getInstance().apply {
-
-                timeInMillis =
-                    millis
-
-                add(
-                    Calendar.DAY_OF_MONTH,
-                    days
-                )
-            }
-
-        return calendar.timeInMillis
-    }
-
-    private fun daysBetween(
-        startMillis: Long,
-        endMillis: Long
-    ): Long {
-
-        return TimeUnit.MILLISECONDS
-            .toDays(
-                endMillis -
-                    startMillis
-            )
-    }
 
     private fun dpToPx(
         dp: Int
@@ -581,4 +413,4 @@ class TimelineFragment : Fragment() {
 
         super.onDestroyView()
     }
-    } 
+}

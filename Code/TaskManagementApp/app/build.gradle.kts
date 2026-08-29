@@ -35,6 +35,13 @@ android {
     buildFeatures {
         viewBinding = true
     }
+    sourceSets["androidTest"].assets.srcDir("$projectDir/schemas")
+}
+
+kapt {
+    arguments {
+        arg("room.schemaLocation", "$projectDir/schemas")
+    }
 }
 
 dependencies {
@@ -55,5 +62,6 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation("androidx.test:core-ktx:1.6.1")
 }
