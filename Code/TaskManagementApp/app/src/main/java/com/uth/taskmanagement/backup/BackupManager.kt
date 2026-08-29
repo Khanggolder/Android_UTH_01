@@ -26,6 +26,7 @@ class BackupManager(
             obj.put("id", task.id)
             obj.put("title", task.title)
             obj.put("description", task.description)
+            obj.put("startDateTime", task.startDateTime)
             obj.put("dueDateTime", task.dueDateTime)
             obj.put("priority", task.priority.name)
             obj.put("status", task.status.name)
@@ -42,46 +43,100 @@ class BackupManager(
         } ?: throw IOException("Unable to open file for writing")
     }
     suspend fun restoreTasks(uri: Uri): Result<Unit> = runCatching {
-        val jsonText = context.contentResolver.openInputStream(uri)?.use {
-            it.bufferedReader().readText()
-        } ?: throw IOException("Unable to read file")
+
+        val jsonText =
+            context.contentResolver.openInputStream(uri)?.use {
+                it.bufferedReader().readText()
+            } ?: throw IOException("Unable to read file")
 
         val jsonArray = JSONArray(jsonText)
         val tasks = mutableListOf<TaskEntity>()
 
         for (i in 0 until jsonArray.length()) {
+
             val obj = jsonArray.getJSONObject(i)
+
+            val createdAt =
+                obj.getLong("createdAt")
+
+            val startDateTime =
+                if (obj.has("startDateTime")) {
+                    obj.getLong("startDateTime")
+                } else {
+                    createdAt
+                }
+
             tasks.add(
                 TaskEntity(
                     id = obj.getLong("id"),
                     title = obj.getString("title"),
                     description = obj.getString("description"),
-                    dueDateTime = obj.getLong("dueDateTime"),
-                    priority = TaskPriority.valueOf(obj.getString("priority")),
-                    status = TaskStatus.valueOf(obj.getString("status")),
-                    isCompleted = obj.getBoolean("isCompleted"),
-                    reminderTime = if (obj.isNull("reminderTime")) null else obj.getLong("reminderTime"),
-                    recurrenceType = RecurrenceType.valueOf(obj.getString("recurrenceType")),
-                    createdAt = obj.getLong("createdAt"),
-                    updatedAt = obj.getLong("updatedAt")
+
+                    startDateTime = startDateTime,
+
+                    dueDateTime =
+                        obj.getLong("dueDateTime"),
+
+                    priority =
+                        TaskPriority.valueOf(
+                            obj.getString("priority")
+                        ),
+
+                    status =
+                        TaskStatus.valueOf(
+                            obj.getString("status")
+                        ),
+
+                    isCompleted =
+                        obj.getBoolean("isCompleted"),
+
+                    reminderTime =
+                        if (obj.isNull("reminderTime")) {
+                            null
+                        } else {
+                            obj.getLong("reminderTime")
+                        },
+
+                    recurrenceType =
+                        RecurrenceType.valueOf(
+                            obj.getString("recurrenceType")
+                        ),
+
+                    createdAt = createdAt,
+
+                    updatedAt =
+                        obj.getLong("updatedAt")
                 )
             )
         }
 
         val existingTasks = repo.getAllTasks()
+
         repo.replaceAllTasks(tasks)
 
         existingTasks.forEach { task ->
-            RecurrenceScheduler.cancelAlarm(context, task.id)
+            RecurrenceScheduler.cancelAlarm(
+                context,
+                task.id
+            )
         }
 
         tasks.forEach { task ->
-            val scheduledTime = RecurrenceScheduler.scheduleReminderForTask(
-                context = context,
-                task = task
-            )
-            if (scheduledTime != null && scheduledTime != task.reminderTime) {
-                repo.updateReminderTime(task.id, scheduledTime)
+
+            val scheduledTime =
+                RecurrenceScheduler.scheduleReminderForTask(
+                    context = context,
+                    task = task
+                )
+
+            if (
+                scheduledTime != null &&
+                scheduledTime != task.reminderTime
+            ) {
+                repo.updateReminderTime(
+                    task.id,
+                    scheduledTime
+                )
             }
         }
     }
