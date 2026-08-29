@@ -12,6 +12,7 @@ import kotlin.math.max
 import androidx.core.content.ContextCompat
 import com.uth.taskmanagement.R
 import com.uth.taskmanagement.data.model.TaskStatus
+import android.content.res.ColorStateList
 
 class TimelineAdapter(
     private val timelineStart: Long,
@@ -52,12 +53,13 @@ class TimelineAdapter(
                         R.color.timeline_completed
                 }
 
-            binding.timelineBar.setBackgroundColor(
-                ContextCompat.getColor(
-                    context,
-                    barColorRes
+            binding.timelineBar.backgroundTintList =
+                ColorStateList.valueOf(
+                    ContextCompat.getColor(
+                        context,
+                        barColorRes
+                    )
                 )
-            )
 
             val dayWidthPx =
                 (TimelineLayoutCalculator.DAY_WIDTH_DP *
@@ -108,10 +110,8 @@ class TimelineAdapter(
 
                 if (cellDate == today) {
 
-                    gridCell.setBackgroundColor(
-                        android.graphics.Color.parseColor(
-                            "#E3F2FD"
-                        )
+                    gridCell.setBackgroundResource(
+                        R.drawable.bg_timeline_today_cell
                     )
 
                 } else {

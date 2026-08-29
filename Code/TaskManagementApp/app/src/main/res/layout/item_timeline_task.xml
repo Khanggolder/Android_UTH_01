@@ -15,8 +15,8 @@
     <View
         android:id="@+id/timelineBar"
         android:layout_width="100dp"
-        android:layout_height="28dp"
+        android:layout_height="22dp"
         android:layout_gravity="center_vertical"
-        android:background="@color/accent" />
+        android:background="@drawable/bg_timeline_bar" />
 
 </FrameLayout>
