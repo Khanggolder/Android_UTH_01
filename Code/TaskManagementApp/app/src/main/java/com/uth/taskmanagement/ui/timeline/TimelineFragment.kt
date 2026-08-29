@@ -202,6 +202,10 @@ class TimelineFragment : Fragment() {
         timelineAdapter?.submitList(
             layout.tasks
         )
+        scrollToToday(
+            layout.timelineStart,
+            layout.totalDays
+        )
     }
 
     // ─────────────────────────────────────────────
@@ -288,6 +292,69 @@ class TimelineFragment : Fragment() {
                 .addView(
                     dateText
                 )
+        }
+    }
+    
+    //
+    // Scroll Today
+    //
+
+    private fun scrollToToday(
+        timelineStart: Long,
+        totalDays: Int
+    ) {
+
+        val today =
+            TimelineLayoutCalculator.startOfDay(
+                System.currentTimeMillis()
+            )
+
+        var todayIndex = -1
+
+        for (dayIndex in 0 until totalDays) {
+
+            val currentDate =
+                TimelineLayoutCalculator.addDays(
+                    timelineStart,
+                    dayIndex.toLong()
+                )
+
+            if (currentDate == today) {
+                todayIndex = dayIndex
+                break
+            }
+        }
+
+        if (todayIndex == -1) {
+            return
+        }
+
+        binding.timelineScroll.post {
+
+            if (_binding == null) {
+                return@post
+            }
+
+            val dayWidth =
+                dpToPx(
+                    TimelineLayoutCalculator.DAY_WIDTH_DP
+                )
+
+            val todayCenter =
+                todayIndex * dayWidth +
+                    dayWidth / 2
+
+            val screenCenter =
+                binding.timelineScroll.width / 2
+
+            val targetScrollX =
+                (todayCenter - screenCenter)
+                    .coerceAtLeast(0)
+
+            binding.timelineScroll.scrollTo(
+                targetScrollX,
+                0
+            )
         }
     }
 
