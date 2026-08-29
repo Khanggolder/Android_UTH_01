@@ -8,12 +8,10 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.uth.taskmanagement.data.model.TaskEntity
 import com.uth.taskmanagement.databinding.ItemTimelineTaskBinding
-import java.util.concurrent.TimeUnit
 import kotlin.math.max
 import androidx.core.content.ContextCompat
 import com.uth.taskmanagement.R
 import com.uth.taskmanagement.data.model.TaskStatus
-import kotlin.math.min
 
 class TimelineAdapter(
     private val timelineStart: Long,
@@ -23,7 +21,6 @@ class TimelineAdapter(
 {
 
     companion object {
-        private const val DAY_WIDTH_DP = 80
         private const val MIN_BAR_WIDTH_DP = 40
     }
 
@@ -63,42 +60,32 @@ class TimelineAdapter(
             )
 
             val dayWidthPx =
-                (DAY_WIDTH_DP * context.resources.displayMetrics.density)
+                (TimelineLayoutCalculator.DAY_WIDTH_DP *
+                    context.resources.displayMetrics.density)
                     .toInt()
 
             val minBarWidthPx =
                 (MIN_BAR_WIDTH_DP * context.resources.displayMetrics.density)
                     .toInt()
 
-            val startOffsetDays =
-                daysBetween(
-                    timelineStart,
-                    task.startDateTime
-                )
+            val timelineWidthPx = totalDays * dayWidthPx
+            binding.timelineContainer.layoutParams =
+                binding.timelineContainer.layoutParams.apply {
+                    width = timelineWidthPx
+                }
 
-            val durationDays =
-                daysBetween(
-                    task.startDateTime,
-                    task.dueDateTime
-                ) + 1
+            val barPosition =
+                TimelineLayoutCalculator.barPosition(
+                    task = task,
+                    timelineStart = timelineStart,
+                    totalDays = totalDays
+                ) ?: return
 
             val leftMargin =
-                max(
-                    0,
-                    startOffsetDays.toInt()
-                ) * dayWidthPx
-
-            val visibleDurationDays =
-                min(
-                    durationDays.toInt(),
-                    totalDays
-                )
+                barPosition.startDayIndex * dayWidthPx
 
             val barWidth =
-                max(
-                    1,
-                    visibleDurationDays
-                ) * dayWidthPx
+                barPosition.durationDays * dayWidthPx
 
             binding.gridContainer.removeAllViews()
 
@@ -114,10 +101,10 @@ class TimelineAdapter(
                     )
 
                 val cellDate =
-                    timelineStart +
-                        TimeUnit.DAYS.toMillis(
-                            dayIndex.toLong()
-                        )
+                    TimelineLayoutCalculator.addDays(
+                        timelineStart,
+                        dayIndex.toLong()
+                    )
 
                 if (cellDate == today) {
 
@@ -179,18 +166,6 @@ class TimelineAdapter(
         holder.bind(
             getItem(position)
         )
-    }
-
-    private fun daysBetween(
-        startMillis: Long,
-        endMillis: Long
-    ): Long {
-
-        val diff =
-            endMillis - startMillis
-
-        return TimeUnit.MILLISECONDS
-            .toDays(diff)
     }
 
     class DiffCallback :

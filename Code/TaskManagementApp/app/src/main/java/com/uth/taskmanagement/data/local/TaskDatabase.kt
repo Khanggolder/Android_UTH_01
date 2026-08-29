@@ -12,7 +12,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 @Database(
     entities = [TaskEntity::class],
     version = 2,
-    exportSchema = false
+    exportSchema = true
 )
 @TypeConverters(Converters::class)
 abstract class TaskDatabase : RoomDatabase() {
@@ -38,7 +38,7 @@ abstract class TaskDatabase : RoomDatabase() {
                     }
             }
         }
-        private val MIGRATION_1_2 = object : Migration(1, 2) {
+        val MIGRATION_1_2 = object : Migration(1, 2) {
 
             override fun migrate(
                 db: SupportSQLiteDatabase
