@@ -1,36 +1,39 @@
 package com.uth.taskmanagement.ui.timeline
 
+import android.graphics.Typeface
 import android.os.Bundle
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.uth.taskmanagement.R
 import com.uth.taskmanagement.TaskManagementApp
 import com.uth.taskmanagement.data.model.TaskEntity
 import com.uth.taskmanagement.databinding.FragmentTimelineBinding
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import androidx.recyclerview.widget.RecyclerView
 
 class TimelineFragment : Fragment() {
 
-    private var taskNameAdapter: TimelineTaskNameAdapter? = null
-
     private var _binding: FragmentTimelineBinding? = null
-
-    private var isSyncingScroll = false
-    private var isSyncingHorizontalScroll = false
 
     private val binding
         get() = _binding!!
 
     private lateinit var viewModel: TimelineViewModel
 
+    private var taskNameAdapter: TimelineTaskNameAdapter? = null
     private var timelineAdapter: TimelineAdapter? = null
+
+    private var isSyncingScroll = false
+    private var isSyncingHorizontalScroll = false
 
     private val dayFormat =
         SimpleDateFormat(
@@ -65,15 +68,10 @@ class TimelineFragment : Fragment() {
         )
 
         setupViewModel()
-
         setupRecyclerView()
-
         syncVerticalScroll()
-
         syncHorizontalScroll()
-
         observeTasks()
-        
     }
 
     // ─────────────────────────────────────────────
@@ -83,8 +81,7 @@ class TimelineFragment : Fragment() {
     private fun setupViewModel() {
 
         val app =
-            requireActivity().application
-                    as TaskManagementApp
+            requireActivity().application as TaskManagementApp
 
         viewModel =
             ViewModelProvider(
@@ -102,10 +99,14 @@ class TimelineFragment : Fragment() {
     private fun setupRecyclerView() {
 
         binding.rvTaskNames.layoutManager =
-            LinearLayoutManager(requireContext())
+            LinearLayoutManager(
+                requireContext()
+            )
 
         binding.rvTimeline.layoutManager =
-            LinearLayoutManager(requireContext())
+            LinearLayoutManager(
+                requireContext()
+            )
 
         taskNameAdapter =
             TimelineTaskNameAdapter()
@@ -115,7 +116,7 @@ class TimelineFragment : Fragment() {
     }
 
     // ─────────────────────────────────────────────
-    // Observe Tasks
+    // Observe tasks
     // ─────────────────────────────────────────────
 
     private fun observeTasks() {
@@ -124,7 +125,24 @@ class TimelineFragment : Fragment() {
             viewLifecycleOwner
         ) { tasks ->
 
-            if (tasks.isNullOrEmpty()) {
+            val isEmpty =
+                tasks.isNullOrEmpty()
+
+            binding.timelineContent.visibility =
+                if (isEmpty) {
+                    View.GONE
+                } else {
+                    View.VISIBLE
+                }
+
+            binding.emptyState.visibility =
+                if (isEmpty) {
+                    View.VISIBLE
+                } else {
+                    View.GONE
+                }
+
+            if (isEmpty) {
 
                 binding.dateHeaderContainer
                     .removeAllViews()
@@ -145,15 +163,17 @@ class TimelineFragment : Fragment() {
     }
 
     // ─────────────────────────────────────────────
-    // Setup Timeline
+    // Setup timeline
     // ─────────────────────────────────────────────
 
     private fun setupTimeline(
         tasks: List<TaskEntity>
     ) {
+
         val layout =
-            TimelineLayoutCalculator.calculate(tasks)
-                ?: return
+            TimelineLayoutCalculator.calculate(
+                tasks
+            ) ?: return
 
         val today =
             TimelineLayoutCalculator.startOfDay(
@@ -171,6 +191,7 @@ class TimelineFragment : Fragment() {
                 layout.totalDays,
                 today
             )
+
         binding.rvTimeline.adapter =
             timelineAdapter
 
@@ -181,10 +202,14 @@ class TimelineFragment : Fragment() {
         timelineAdapter?.submitList(
             layout.tasks
         )
+        scrollToToday(
+            layout.timelineStart,
+            layout.totalDays
+        )
     }
 
     // ─────────────────────────────────────────────
-    // Date Header
+    // Date header
     // ─────────────────────────────────────────────
 
     private fun createDateHeader(
@@ -219,10 +244,21 @@ class TimelineFragment : Fragment() {
                         )
 
                     gravity =
-                        android.view.Gravity.CENTER
+                        Gravity.CENTER
 
                     textSize =
                         12f
+
+                    setTextColor(
+                        ContextCompat.getColor(
+                            requireContext(),
+                            R.color.text_secondary
+                        )
+                    )
+
+                    setBackgroundResource(
+                        R.drawable.bg_timeline_header_cell
+                    )
 
                     layoutParams =
                         ViewGroup.LayoutParams(
@@ -235,21 +271,20 @@ class TimelineFragment : Fragment() {
 
             if (currentDate == today) {
 
-                dateText.setBackgroundColor(
-                    android.graphics.Color.parseColor(
-                        "#E3F2FD"
-                    )
+                dateText.setBackgroundResource(
+                    R.drawable.bg_timeline_today_cell
                 )
 
                 dateText.setTextColor(
-                    android.graphics.Color.parseColor(
-                        "#1565C0"
+                    ContextCompat.getColor(
+                        requireContext(),
+                        R.color.accent
                     )
                 )
 
                 dateText.setTypeface(
                     null,
-                    android.graphics.Typeface.BOLD
+                    Typeface.BOLD
                 )
             }
 
@@ -259,9 +294,72 @@ class TimelineFragment : Fragment() {
                 )
         }
     }
+    
+    //
+    // Scroll Today
+    //
+
+    private fun scrollToToday(
+        timelineStart: Long,
+        totalDays: Int
+    ) {
+
+        val today =
+            TimelineLayoutCalculator.startOfDay(
+                System.currentTimeMillis()
+            )
+
+        var todayIndex = -1
+
+        for (dayIndex in 0 until totalDays) {
+
+            val currentDate =
+                TimelineLayoutCalculator.addDays(
+                    timelineStart,
+                    dayIndex.toLong()
+                )
+
+            if (currentDate == today) {
+                todayIndex = dayIndex
+                break
+            }
+        }
+
+        if (todayIndex == -1) {
+            return
+        }
+
+        binding.timelineScroll.post {
+
+            if (_binding == null) {
+                return@post
+            }
+
+            val dayWidth =
+                dpToPx(
+                    TimelineLayoutCalculator.DAY_WIDTH_DP
+                )
+
+            val todayCenter =
+                todayIndex * dayWidth +
+                    dayWidth / 2
+
+            val screenCenter =
+                binding.timelineScroll.width / 2
+
+            val targetScrollX =
+                (todayCenter - screenCenter)
+                    .coerceAtLeast(0)
+
+            binding.timelineScroll.scrollTo(
+                targetScrollX,
+                0
+            )
+        }
+    }
 
     // ─────────────────────────────────────────────
-    // Date Utilities
+    // DP helper
     // ─────────────────────────────────────────────
 
     private fun dpToPx(
@@ -275,141 +373,165 @@ class TimelineFragment : Fragment() {
     }
 
     // ─────────────────────────────────────────────
-    // Scrolls
+    // Vertical scroll sync
     // ─────────────────────────────────────────────
 
     private fun syncVerticalScroll() {
 
-    binding.rvTaskNames.addOnScrollListener(
-        object : RecyclerView.OnScrollListener() {
+        binding.rvTaskNames.addOnScrollListener(
+            object :
+                RecyclerView.OnScrollListener() {
 
-            override fun onScrolled(
-                recyclerView: RecyclerView,
-                dx: Int,
-                dy: Int
-            ) {
-
-                if (
-                    dy == 0 ||
-                    isSyncingScroll ||
-                    _binding == null
+                override fun onScrolled(
+                    recyclerView: RecyclerView,
+                    dx: Int,
+                    dy: Int
                 ) {
-                    return
+
+                    if (
+                        dy == 0 ||
+                        isSyncingScroll ||
+                        _binding == null
+                    ) {
+                        return
+                    }
+
+                    isSyncingScroll = true
+
+                    binding.rvTimeline.scrollBy(
+                        0,
+                        dy
+                    )
+
+                    isSyncingScroll = false
                 }
-
-                isSyncingScroll = true
-
-                binding.rvTimeline.scrollBy(
-                    0,
-                    dy
-                )
-
-                isSyncingScroll = false
             }
-        }
-    )
+        )
 
-    binding.rvTimeline.addOnScrollListener(
-        object : RecyclerView.OnScrollListener() {
+        binding.rvTimeline.addOnScrollListener(
+            object :
+                RecyclerView.OnScrollListener() {
 
-            override fun onScrolled(
-                recyclerView: RecyclerView,
-                dx: Int,
-                dy: Int
-            ) {
-
-                if (
-                    dy == 0 ||
-                    isSyncingScroll ||
-                    _binding == null
+                override fun onScrolled(
+                    recyclerView: RecyclerView,
+                    dx: Int,
+                    dy: Int
                 ) {
-                    return
+
+                    if (
+                        dy == 0 ||
+                        isSyncingScroll ||
+                        _binding == null
+                    ) {
+                        return
+                    }
+
+                    isSyncingScroll = true
+
+                    binding.rvTaskNames.scrollBy(
+                        0,
+                        dy
+                    )
+
+                    isSyncingScroll = false
                 }
-
-                isSyncingScroll = true
-
-                binding.rvTaskNames.scrollBy(
-                    0,
-                    dy
-                )
-
-                isSyncingScroll = false
             }
-        }
-    )
-}
+        )
+    }
+
+    // ─────────────────────────────────────────────
+    // Horizontal scroll sync
+    // ─────────────────────────────────────────────
 
     private fun syncHorizontalScroll() {
 
-        binding.timelineScroll.setOnScrollChangeListener {
-                _,
-                scrollX,
-                _,
-                _,
-                _ ->
+        binding.timelineScroll
+            .setOnScrollChangeListener {
+                    _,
+                    scrollX,
+                    _,
+                    _,
+                    _ ->
 
-            if (
-                isSyncingHorizontalScroll ||
-                _binding == null
-            ) {
-                return@setOnScrollChangeListener
+                if (
+                    isSyncingHorizontalScroll ||
+                    _binding == null
+                ) {
+                    return@setOnScrollChangeListener
+                }
+
+                isSyncingHorizontalScroll = true
+
+                binding.headerScroll.scrollTo(
+                    scrollX,
+                    0
+                )
+
+                isSyncingHorizontalScroll = false
             }
 
-            isSyncingHorizontalScroll = true
+        binding.headerScroll
+            .setOnScrollChangeListener {
+                    _,
+                    scrollX,
+                    _,
+                    _,
+                    _ ->
 
-            binding.headerScroll.scrollTo(
-                scrollX,
-                0
-            )
+                if (
+                    isSyncingHorizontalScroll ||
+                    _binding == null
+                ) {
+                    return@setOnScrollChangeListener
+                }
 
-            isSyncingHorizontalScroll = false
-        }
+                isSyncingHorizontalScroll = true
 
-        binding.headerScroll.setOnScrollChangeListener {
-                _,
-                scrollX,
-                _,
-                _,
-                _ ->
+                binding.timelineScroll.scrollTo(
+                    scrollX,
+                    0
+                )
 
-            if (
-                isSyncingHorizontalScroll ||
-                _binding == null
-            ) {
-                return@setOnScrollChangeListener
+                isSyncingHorizontalScroll = false
             }
-
-            isSyncingHorizontalScroll = true
-
-            binding.timelineScroll.scrollTo(
-                scrollX,
-                0
-            )
-
-            isSyncingHorizontalScroll = false
-        }
     }
+
+    // ─────────────────────────────────────────────
+    // Cleanup
+    // ─────────────────────────────────────────────
 
     override fun onDestroyView() {
 
-        binding.timelineScroll.setOnScrollChangeListener(
-            null as View.OnScrollChangeListener?
-        )
+        binding.timelineScroll
+            .setOnScrollChangeListener(
+                null as View.OnScrollChangeListener?
+            )
 
-        binding.headerScroll.setOnScrollChangeListener(
-            null as View.OnScrollChangeListener?
-        )
+        binding.headerScroll
+            .setOnScrollChangeListener(
+                null as View.OnScrollChangeListener?
+            )
 
-        binding.rvTaskNames.clearOnScrollListeners()
-        binding.rvTimeline.clearOnScrollListeners()
+        binding.rvTaskNames
+            .clearOnScrollListeners()
 
-        binding.rvTaskNames.adapter = null
-        binding.rvTimeline.adapter = null
+        binding.rvTimeline
+            .clearOnScrollListeners()
 
-        taskNameAdapter = null
-        timelineAdapter = null
+        binding.rvTaskNames.adapter =
+            null
 
-        _binding = null
+        binding.rvTimeline.adapter =
+            null
+
+        taskNameAdapter =
+            null
+
+        timelineAdapter =
+            null
+
+        _binding =
+            null
 
         super.onDestroyView()
     }
