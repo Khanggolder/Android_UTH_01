@@ -28,5 +28,11 @@ data class TaskEntity(
 
     val createdAt: Long = System.currentTimeMillis(),
 
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
+
+    /** ID của user đã tạo task này. */
+    val createdByUserId: String = UserEntity.DEFAULT_USER_ID,
+
+    /** ID của user được giao task này. */
+    val assigneeUserId: String = UserEntity.DEFAULT_USER_ID
 )
