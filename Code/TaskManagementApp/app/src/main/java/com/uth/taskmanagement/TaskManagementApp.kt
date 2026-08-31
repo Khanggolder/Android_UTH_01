@@ -3,6 +3,7 @@ package com.uth.taskmanagement
 import android.app.Application
 import com.uth.taskmanagement.backup.BackupManager
 import com.uth.taskmanagement.data.local.TaskDatabase
+import com.uth.taskmanagement.data.repository.AttachmentRepository
 import com.uth.taskmanagement.data.repository.TaskRepository
 import com.uth.taskmanagement.data.repository.UserRepository
 import com.uth.taskmanagement.security.PinPreferences
@@ -24,6 +25,11 @@ class TaskManagementApp : Application() {
     val userRepository: UserRepository by lazy {
         val db = TaskDatabase.getInstance(this)
         UserRepository(db.userDao())
+    }
+
+    val attachmentRepository: AttachmentRepository by lazy {
+        val db = TaskDatabase.getInstance(this)
+        AttachmentRepository(db.attachmentDao())
     }
 
     val pinPreferences: PinPreferences by lazy {
