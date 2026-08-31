@@ -13,7 +13,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [TaskEntity::class, UserEntity::class, TaskAttachmentEntity::class],
-    version = 5,
+    version = 3,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -37,7 +37,7 @@ abstract class TaskDatabase : RoomDatabase() {
                         TaskDatabase::class.java,
                         "task_management.db"
                     )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                     .also { database ->
                         INSTANCE = database
@@ -45,8 +45,55 @@ abstract class TaskDatabase : RoomDatabase() {
             }
         }
 
-        val MIGRATION_4_5 = object : Migration(4, 5) {
+        /**
+         * Migration 2 → 3 (gộp toàn bộ thay đổi User + Attachment):
+         *
+         * 1. Tạo bảng users
+         * 2. Insert user mặc định local-user
+         * 3. Thêm createdByUserId, assigneeUserId vào tasks
+         * 4. Gán task cũ cho local-user
+         * 5. Tạo bảng task_attachments với Foreign Key CASCADE
+         * 6. Tạo index cho taskId
+         */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
+
+                // 1. Tạo bảng users
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS users (
+                        id    TEXT NOT NULL PRIMARY KEY,
+                        name  TEXT NOT NULL,
+                        email TEXT NOT NULL DEFAULT ''
+                    )
+                    """.trimIndent()
+                )
+
+                // 2. Insert user mặc định (IGNORE nếu đã tồn tại)
+                db.execSQL(
+                    """
+                    INSERT OR IGNORE INTO users (id, name, email)
+                    VALUES ('local-user', 'Me', '')
+                    """.trimIndent()
+                )
+
+                // 3. Thêm cột user vào tasks
+                db.execSQL(
+                    "ALTER TABLE tasks ADD COLUMN createdByUserId TEXT NOT NULL DEFAULT 'local-user'"
+                )
+                db.execSQL(
+                    "ALTER TABLE tasks ADD COLUMN assigneeUserId TEXT NOT NULL DEFAULT 'local-user'"
+                )
+
+                // 4. Gán task cũ cho local-user (đảm bảo không có giá trị rỗng)
+                db.execSQL(
+                    "UPDATE tasks SET createdByUserId = 'local-user' WHERE createdByUserId = ''"
+                )
+                db.execSQL(
+                    "UPDATE tasks SET assigneeUserId = 'local-user' WHERE assigneeUserId = ''"
+                )
+
+                // 5. Tạo bảng task_attachments với Foreign Key CASCADE
                 db.execSQL(
                     """
                     CREATE TABLE IF NOT EXISTS task_attachments (
@@ -61,33 +108,10 @@ abstract class TaskDatabase : RoomDatabase() {
                     )
                     """.trimIndent()
                 )
+
+                // 6. Index cho taskId
                 db.execSQL(
                     "CREATE INDEX IF NOT EXISTS index_task_attachments_taskId ON task_attachments(taskId)"
-                )
-            }
-        }
-
-        val MIGRATION_3_4 = object : Migration(3, 4) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL(
-                    "ALTER TABLE tasks ADD COLUMN createdByUserId TEXT NOT NULL DEFAULT 'local-user'"
-                )
-                db.execSQL(
-                    "ALTER TABLE tasks ADD COLUMN assigneeUserId TEXT NOT NULL DEFAULT 'local-user'"
-                )
-            }
-        }
-
-        val MIGRATION_2_3 = object : Migration(2, 3) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL(
-                    """
-                    CREATE TABLE IF NOT EXISTS users (
-                        id TEXT NOT NULL PRIMARY KEY,
-                        name TEXT NOT NULL,
-                        email TEXT NOT NULL DEFAULT ''
-                    )
-                    """.trimIndent()
                 )
             }
         }
@@ -125,3 +149,4 @@ abstract class TaskDatabase : RoomDatabase() {
         }
     }
 }
+
