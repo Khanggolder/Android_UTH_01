@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 3,
-    "identityHash": "6fdfaaf2ac18525f859d4d2134f8706a",
+    "identityHash": "a09df2abf170291a132968c845b401d6",
     "entities": [
       {
         "tableName": "tasks",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT NOT NULL, `description` TEXT NOT NULL, `startDateTime` INTEGER NOT NULL, `dueDateTime` INTEGER NOT NULL, `priority` TEXT NOT NULL, `status` TEXT NOT NULL, `isCompleted` INTEGER NOT NULL, `reminderTime` INTEGER, `recurrenceType` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `createdByUserId` TEXT NOT NULL, `assigneeUserId` TEXT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT NOT NULL, `description` TEXT NOT NULL, `startDateTime` INTEGER NOT NULL, `dueDateTime` INTEGER NOT NULL, `priority` TEXT NOT NULL, `status` TEXT NOT NULL, `isCompleted` INTEGER NOT NULL, `reminderTime` INTEGER, `recurrenceType` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `createdByUserId` TEXT NOT NULL DEFAULT 'local-user', `assigneeUserId` TEXT NOT NULL DEFAULT 'local-user')",
         "fields": [
           {
             "fieldPath": "id",
@@ -83,13 +83,15 @@
             "fieldPath": "createdByUserId",
             "columnName": "createdByUserId",
             "affinity": "TEXT",
-            "notNull": true
+            "notNull": true,
+            "defaultValue": "'local-user'"
           },
           {
             "fieldPath": "assigneeUserId",
             "columnName": "assigneeUserId",
             "affinity": "TEXT",
-            "notNull": true
+            "notNull": true,
+            "defaultValue": "'local-user'"
           }
         ],
         "primaryKey": {
@@ -101,7 +103,7 @@
       },
       {
         "tableName": "users",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `email` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `email` TEXT NOT NULL DEFAULT '', PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -119,7 +121,8 @@
             "fieldPath": "email",
             "columnName": "email",
             "affinity": "TEXT",
-            "notNull": true
+            "notNull": true,
+            "defaultValue": "''"
           }
         ],
         "primaryKey": {
@@ -131,7 +134,7 @@
       },
       {
         "tableName": "task_attachments",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `taskId` INTEGER NOT NULL, `fileName` TEXT NOT NULL, `uri` TEXT NOT NULL, `mimeType` TEXT NOT NULL, `sizeBytes` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, FOREIGN KEY(`taskId`) REFERENCES `tasks`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `taskId` INTEGER NOT NULL, `fileName` TEXT NOT NULL, `uri` TEXT NOT NULL, `mimeType` TEXT NOT NULL DEFAULT '', `sizeBytes` INTEGER NOT NULL DEFAULT 0, `createdAt` INTEGER NOT NULL, FOREIGN KEY(`taskId`) REFERENCES `tasks`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -161,13 +164,15 @@
             "fieldPath": "mimeType",
             "columnName": "mimeType",
             "affinity": "TEXT",
-            "notNull": true
+            "notNull": true,
+            "defaultValue": "''"
           },
           {
             "fieldPath": "sizeBytes",
             "columnName": "sizeBytes",
             "affinity": "INTEGER",
-            "notNull": true
+            "notNull": true,
+            "defaultValue": "0"
           },
           {
             "fieldPath": "createdAt",
@@ -210,7 +215,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '6fdfaaf2ac18525f859d4d2134f8706a')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a09df2abf170291a132968c845b401d6')"
     ]
   }
 }
