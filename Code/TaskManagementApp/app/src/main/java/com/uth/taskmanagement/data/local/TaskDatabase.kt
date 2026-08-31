@@ -5,14 +5,15 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import com.uth.taskmanagement.data.model.TaskAttachmentEntity
 import com.uth.taskmanagement.data.model.TaskEntity
 import com.uth.taskmanagement.data.model.UserEntity
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [TaskEntity::class, UserEntity::class],
-    version = 4,
+    entities = [TaskEntity::class, UserEntity::class, TaskAttachmentEntity::class],
+    version = 5,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -21,6 +22,8 @@ abstract class TaskDatabase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
 
     abstract fun userDao(): UserDao
+
+    abstract fun attachmentDao(): AttachmentDao
 
     companion object {
 
@@ -34,11 +37,33 @@ abstract class TaskDatabase : RoomDatabase() {
                         TaskDatabase::class.java,
                         "task_management.db"
                     )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .build()
                     .also { database ->
                         INSTANCE = database
                     }
+            }
+        }
+
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS task_attachments (
+                        id        INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        taskId    INTEGER NOT NULL,
+                        fileName  TEXT    NOT NULL,
+                        uri       TEXT    NOT NULL,
+                        mimeType  TEXT    NOT NULL DEFAULT '',
+                        sizeBytes INTEGER NOT NULL DEFAULT 0,
+                        createdAt INTEGER NOT NULL,
+                        FOREIGN KEY (taskId) REFERENCES tasks(id) ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_task_attachments_taskId ON task_attachments(taskId)"
+                )
             }
         }
 
