@@ -7,6 +7,7 @@ import com.uth.taskmanagement.data.model.RecurrenceType
 import com.uth.taskmanagement.data.model.TaskEntity
 import com.uth.taskmanagement.data.model.TaskPriority
 import com.uth.taskmanagement.data.model.TaskStatus
+import com.uth.taskmanagement.data.model.UserEntity
 import com.uth.taskmanagement.data.repository.TaskRepository
 import com.uth.taskmanagement.recurrence.RecurrenceScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -315,7 +316,13 @@ class TaskFormViewModel(
                                 } else {
 
                                     RecurrenceType.NONE
-                                }
+                                },
+
+                            createdByUserId =
+                                UserEntity.DEFAULT_USER_ID,
+
+                            assigneeUserId =
+                                UserEntity.DEFAULT_USER_ID
                         )
 
                     val newId =
