@@ -6,18 +6,21 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.uth.taskmanagement.data.model.TaskEntity
+import com.uth.taskmanagement.data.model.UserEntity
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [TaskEntity::class],
-    version = 2,
+    entities = [TaskEntity::class, UserEntity::class],
+    version = 3,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
 abstract class TaskDatabase : RoomDatabase() {
 
     abstract fun taskDao(): TaskDao
+
+    abstract fun userDao(): UserDao
 
     companion object {
 
@@ -31,13 +34,28 @@ abstract class TaskDatabase : RoomDatabase() {
                         TaskDatabase::class.java,
                         "task_management.db"
                     )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                     .also { database ->
                         INSTANCE = database
                     }
             }
         }
+
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS users (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        email TEXT NOT NULL DEFAULT ''
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
         val MIGRATION_1_2 = object : Migration(1, 2) {
 
             override fun migrate(
