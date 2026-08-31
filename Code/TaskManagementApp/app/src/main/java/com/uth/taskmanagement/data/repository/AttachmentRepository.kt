@@ -20,6 +20,17 @@ class AttachmentRepository(
             )
         )
 
+    /**
+     * Thêm nhiều attachment cùng lúc (batch insert).
+     * @return danh sách id được sinh tương ứng.
+     */
+    suspend fun addAttachments(attachments: List<TaskAttachmentEntity>): List<Long> {
+        val now = System.currentTimeMillis()
+        return attachmentDao.insertAll(
+            attachments.map { it.copy(id = 0, createdAt = now) }
+        )
+    }
+
     suspend fun deleteAttachment(id: Long) =
         attachmentDao.deleteById(id)
 
