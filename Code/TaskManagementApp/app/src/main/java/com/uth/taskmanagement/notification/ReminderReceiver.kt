@@ -22,18 +22,8 @@ class ReminderReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         val taskId = intent.getLongExtra(EXTRA_TASK_ID, -1L)
-        val title = intent.getStringExtra(EXTRA_TASK_TITLE) ?: "Task reminder"
-        val description = intent.getStringExtra(EXTRA_TASK_DESCRIPTION) ?: ""
 
         if (taskId == -1L) return
-
-        // Hiển thị thông báo ngay lập tức
-        NotificationHelper.showNotification(
-            context = context,
-            notificationId = taskId.toInt(),
-            title = title,
-            content = description.ifEmpty { "It is time to work on this task!" }
-        )
 
         // goAsync() giữ wake lock đủ lâu để coroutine hoàn thành
         val pendingResult = goAsync()
@@ -47,15 +37,23 @@ class ReminderReceiver : BroadcastReceiver() {
                 // Nếu task đã hoàn thành thì không lặp
                 if (task.isCompleted) return@launch
 
+                val currentReminderTime = task.reminderTime ?: return@launch
+
+                NotificationHelper.showNotification(
+                    context = context,
+                    notificationId = taskId.toInt(),
+                    title = task.title,
+                    content = task.description.ifEmpty { "It is time to work on this task!" }
+                )
+
                 // Chỉ reschedule nếu có chu kỳ lặp
                 if (task.recurrenceType == RecurrenceType.NONE) return@launch
 
-                val currentReminderTime = task.reminderTime ?: return@launch
-
                 // Tính thời gian nhắc tiếp theo
-                val nextTime = RecurrenceScheduler.calculateNextReminderTime(
-                    currentTime = currentReminderTime,
-                    recurrenceType = task.recurrenceType
+                val nextTime = RecurrenceScheduler.calculateNextFutureReminderTime(
+                    reminderTime = currentReminderTime,
+                    recurrenceType = task.recurrenceType,
+                    currentTime = System.currentTimeMillis()
                 ) ?: return@launch
 
                 // Cập nhật reminderTime trong DB – không tạo bản ghi mới

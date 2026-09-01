@@ -35,6 +35,10 @@ class TaskCalendarAdapter(
         fun bind(occurrence: TaskOccurrence) {
             val task = occurrence.task
             binding.tvTaskTitle.text = task.title
+            binding.tvEntryType.text = when (occurrence.entryType) {
+                CalendarEntryType.TASK -> "Due"
+                CalendarEntryType.REMINDER -> "Reminder"
+            }
             binding.tvTaskTime.text = SimpleDateFormat("HH:mm", Locale.getDefault())
                 .format(Date(occurrence.occurrenceDateTime))
 
@@ -65,7 +69,9 @@ class TaskCalendarAdapter(
 
     class DiffCallback : DiffUtil.ItemCallback<TaskOccurrence>() {
         override fun areItemsTheSame(old: TaskOccurrence, new: TaskOccurrence) =
-            old.task.id == new.task.id && old.occurrenceDateTime == new.occurrenceDateTime
+            old.task.id == new.task.id &&
+                    old.occurrenceDateTime == new.occurrenceDateTime &&
+                    old.entryType == new.entryType
 
         override fun areContentsTheSame(old: TaskOccurrence, new: TaskOccurrence) = old == new
     }
