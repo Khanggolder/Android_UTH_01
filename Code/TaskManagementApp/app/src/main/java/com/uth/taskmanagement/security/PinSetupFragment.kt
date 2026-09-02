@@ -66,7 +66,7 @@ class PinSetupFragment : Fragment() {
         if (first == null) {
             firstEnteredPin = pin
             binding.tvTitle.text = "Re-enter PIN"
-            binding.tvSubtitle.text = "Confirm the PIN you just created"
+            binding.tvSubtitle.text = "Confirm your new PIN"
             binding.tvError.visibility = View.INVISIBLE
 
             binding.root.postDelayed({ keypadController.reset() }, 150)
@@ -78,12 +78,12 @@ class PinSetupFragment : Fragment() {
                 if (success) {
                     requireActivity().supportFragmentManager.popBackStack()
                 } else {
-                    showError("Something went wrong. Please try again.")
+                    showError("Something went wrong, please try again")
                     resetToFirstStep()
                 }
             }
         } else {
-            showError("PINs do not match. Try again.")
+            showError("PIN doesn't match, please try again")
             resetToFirstStep()
         }
     }
