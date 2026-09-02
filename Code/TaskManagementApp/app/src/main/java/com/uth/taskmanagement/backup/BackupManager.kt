@@ -13,10 +13,15 @@ import kotlinx.coroutines.flow.first
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
+interface ReminderScheduler {
+    suspend fun cancelAll(taskIds: List<Long>)
+    suspend fun scheduleAll(tasks: List<TaskEntity>)
+}
 
 class BackupManager(
     private val taskRepository: TaskRepository,
     private val attachmentRepository: AttachmentRepository,
+    private val reminderScheduler: ReminderScheduler,
     private val context: Context
 ) {
     companion object {
@@ -75,14 +80,17 @@ class BackupManager(
         val jsonText = context.contentResolver.openInputStream(uri)?.use {
             it.bufferedReader().readText()
         } ?: throw IOException("Could not read file")
+        val trimmed = jsonText.trim()
+        val tasksArray: JSONArray
+        val version: Int
 
-        val root = JSONObject(jsonText)
-        val version = root.optInt("version", 1)
-
-        val tasksArray = if (version >= 2) {
-            root.getJSONArray("tasks")
+        if (trimmed.startsWith("{")) {
+            val root = JSONObject(trimmed)
+            version = root.optInt("version", 1)
+            tasksArray = root.getJSONArray("tasks")
         } else {
-            JSONArray(jsonText)
+            version = 1
+            tasksArray = JSONArray(trimmed)
         }
 
         val tasks = mutableListOf<TaskEntity>()
@@ -91,20 +99,22 @@ class BackupManager(
         for (i in 0 until tasksArray.length()) {
             val obj = tasksArray.getJSONObject(i)
             val taskId = obj.getLong("id")
+            val createdAt = obj.getLong("createdAt")
+            val startDateTime = obj.optLong("startDateTime", createdAt)
 
             tasks.add(
                 TaskEntity(
                     id = taskId,
                     title = obj.getString("title"),
                     description = obj.optString("description", ""),
-                    startDateTime = obj.optLong("startDateTime", System.currentTimeMillis()),
+                    startDateTime = startDateTime,
                     dueDateTime = obj.getLong("dueDateTime"),
                     priority = TaskPriority.valueOf(obj.getString("priority")),
                     status = TaskStatus.valueOf(obj.getString("status")),
                     isCompleted = obj.getBoolean("isCompleted"),
                     reminderTime = if (obj.isNull("reminderTime")) null else obj.getLong("reminderTime"),
                     recurrenceType = RecurrenceType.valueOf(obj.getString("recurrenceType")),
-                    createdAt = obj.getLong("createdAt"),
+                    createdAt = createdAt,
                     updatedAt = obj.getLong("updatedAt"),
                     createdByUserId = obj.optString("createdByUserId", "local-user"),
                     assigneeUserId = obj.optString("assigneeUserId", "local-user")
@@ -123,20 +133,21 @@ class BackupManager(
                             uri = attObj.getString("uri"),
                             mimeType = attObj.optString("mimeType", ""),
                             sizeBytes = attObj.optLong("sizeBytes", 0L),
-                            createdAt = attObj.optLong("createdAt", System.currentTimeMillis())
+                            createdAt = attObj.optLong("createdAt", createdAt)
                         )
                     )
                 }
                 attachmentsByTaskId[taskId] = attList
             }
         }
-
+        val oldTaskIds = taskRepository.observeAllTasks().first().map { it.id }
+        reminderScheduler.cancelAll(oldTaskIds)
         taskRepository.replaceAllTasks(tasks)
-
         attachmentsByTaskId.forEach { (taskId, attachments) ->
             if (attachments.isNotEmpty()) {
                 attachmentRepository.addAttachments(attachments)
             }
         }
+        reminderScheduler.scheduleAll(tasks)
     }
 }
