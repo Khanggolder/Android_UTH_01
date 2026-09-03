@@ -218,6 +218,73 @@ class TaskDatabaseMigrationTest {
     // Helpers
     // ─────────────────────────────────────────────────────────────────────────
 
+    @Test
+    fun migration3To4_preservesAttachmentAndAddsOwnershipDefaults() {
+        helper.createDatabase(TEST_DATABASE, 3).apply {
+            insertVersionThreeTask(id = 20L, title = "Task with external attachment")
+            execSQL(
+                """
+                INSERT INTO task_attachments (
+                    id, taskId, fileName, uri, mimeType, sizeBytes, createdAt
+                ) VALUES (
+                    30, 20, 'report.pdf', 'content://legacy/report',
+                    'application/pdf', 2048, 1000
+                )
+                """.trimIndent()
+            )
+            close()
+        }
+
+        database = helper.runMigrationsAndValidate(
+            TEST_DATABASE,
+            4,
+            true,
+            TaskDatabase.MIGRATION_3_4
+        )
+
+        database!!.query(
+            "SELECT fileName, uri, isAppOwned, localRelativePath " +
+                "FROM task_attachments WHERE id = 30"
+        ).use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("report.pdf", cursor.getString(0))
+            assertEquals("content://legacy/report", cursor.getString(1))
+            assertEquals(0, cursor.getInt(2))
+            assertTrue(cursor.isNull(3))
+        }
+    }
+
+    @Test
+    fun migration1To4_preservesTaskAcrossEntireMigrationChain() {
+        helper.createDatabase(TEST_DATABASE, 1).apply {
+            insertVersionOneTask(
+                id = 40L,
+                title = "Old task",
+                createdAt = 100L,
+                dueDateTime = 200L
+            )
+            close()
+        }
+
+        database = helper.runMigrationsAndValidate(
+            TEST_DATABASE,
+            4,
+            true,
+            TaskDatabase.MIGRATION_1_2,
+            TaskDatabase.MIGRATION_2_3,
+            TaskDatabase.MIGRATION_3_4
+        )
+
+        database!!.query(
+            "SELECT title, startDateTime, createdByUserId FROM tasks WHERE id = 40"
+        ).use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("Old task", cursor.getString(0))
+            assertEquals(100L, cursor.getLong(1))
+            assertEquals("local-user", cursor.getString(2))
+        }
+    }
+
     private fun SupportSQLiteDatabase.insertVersionOneTask(
         id: Long,
         title: String,
@@ -249,6 +316,28 @@ class TaskDatabaseMigrationTest {
                 priority, status, isCompleted, reminderTime,
                 recurrenceType, createdAt, updatedAt
             ) VALUES (?, ?, '', ?, ?, 'MEDIUM', 'PENDING', 0, NULL, 'NONE', ?, ?)
+            """.trimIndent(),
+            arrayOf<Any>(id, title, createdAt, dueDateTime, createdAt, createdAt)
+        )
+    }
+
+    private fun SupportSQLiteDatabase.insertVersionThreeTask(
+        id: Long,
+        title: String,
+        createdAt: Long = 1000L,
+        dueDateTime: Long = 9999999999L
+    ) {
+        execSQL(
+            """
+            INSERT INTO tasks (
+                id, title, description, startDateTime, dueDateTime,
+                priority, status, isCompleted, reminderTime,
+                recurrenceType, createdAt, updatedAt,
+                createdByUserId, assigneeUserId
+            ) VALUES (
+                ?, ?, '', ?, ?, 'MEDIUM', 'PENDING', 0, NULL,
+                'NONE', ?, ?, 'local-user', 'local-user'
+            )
             """.trimIndent(),
             arrayOf<Any>(id, title, createdAt, dueDateTime, createdAt, createdAt)
         )
