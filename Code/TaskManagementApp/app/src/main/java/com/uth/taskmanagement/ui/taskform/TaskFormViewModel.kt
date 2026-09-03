@@ -14,6 +14,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import android.net.Uri
+import com.uth.taskmanagement.attachment.AttachmentFileHelper
+import com.uth.taskmanagement.data.model.TaskAttachmentEntity
 
 data class TaskFormState(
     val taskId: Long = -1L,
@@ -28,6 +31,7 @@ data class TaskFormState(
     val status: TaskStatus = TaskStatus.PENDING,
     val reminderTime: Long? = null,
     val recurrenceType: RecurrenceType = RecurrenceType.NONE,
+    val attachments: List<TaskAttachmentEntity> = emptyList(),
 
     val isLoading: Boolean = false,
     val isSaved: Boolean = false,
@@ -111,6 +115,47 @@ class TaskFormViewModel(
                 recurrenceType = type,
                 errorMessage = null
             )
+    }
+
+    fun addAttachment(uri: Uri) {
+
+        try {
+
+            val context =
+                getApplication<Application>()
+                    .applicationContext
+
+            val state =
+                _formState.value
+
+            val attachment =
+                AttachmentFileHelper
+                    .buildAttachmentEntity(
+                        context = context,
+                        uri = uri,
+                        taskId =
+                            if (state.taskId > 0L) {
+                                state.taskId
+                            } else {
+                                0L
+                            }
+                    )
+
+            _formState.value =
+                state.copy(
+                    attachments =
+                        state.attachments + attachment,
+                    errorMessage = null
+                )
+
+        } catch (e: Exception) {
+
+            _formState.value =
+                _formState.value.copy(
+                    errorMessage =
+                        "Failed to add attachment: ${e.message}"
+                )
+        }
     }
 
     // ─────────────────────────────────────────────────────────────
