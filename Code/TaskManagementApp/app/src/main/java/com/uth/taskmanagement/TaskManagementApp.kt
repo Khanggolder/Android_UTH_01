@@ -7,6 +7,7 @@ import com.uth.taskmanagement.data.repository.AttachmentRepository
 import com.uth.taskmanagement.data.repository.TaskRepository
 import com.uth.taskmanagement.data.repository.UserRepository
 import com.uth.taskmanagement.security.PinPreferences
+import com.uth.taskmanagement.backup.ReminderSchedulerImpl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -35,9 +36,11 @@ class TaskManagementApp : Application() {
     val pinPreferences: PinPreferences by lazy {
         PinPreferences(this)
     }
-
+    val reminderScheduler: ReminderSchedulerImpl by lazy {
+        ReminderSchedulerImpl(this)
+    }
     val backupManager: BackupManager by lazy {
-        BackupManager(taskRepository, this)
+        BackupManager(taskRepository, attachmentRepository, reminderScheduler, this)
     }
 
     override fun onCreate() {

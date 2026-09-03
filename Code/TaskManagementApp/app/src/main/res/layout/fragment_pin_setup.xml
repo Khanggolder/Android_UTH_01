@@ -86,7 +86,7 @@
         android:id="@+id/tvError"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="PINs do not match. Try again."
+        android:text="PIN doesn't match, please try again"
         android:textSize="13sp"
         android:textColor="@color/priority_high"
         android:visibility="invisible"
