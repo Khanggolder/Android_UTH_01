@@ -199,6 +199,62 @@ class TaskFormViewModel(
                 )
         }
     }
+    fun removeAttachment(
+    attachment: TaskAttachmentEntity
+) {
+
+    val state = _formState.value
+
+    // Attachment đã lưu DB
+    if (attachment.id > 0L) {
+
+        viewModelScope.launch {
+
+            try {
+
+                attachmentRepository.deleteAttachment(
+                    attachment.id
+                )
+
+                _formState.value =
+                    _formState.value.copy(
+                        attachments =
+                            _formState.value.attachments
+                                .filterNot {
+                                    it.id == attachment.id
+                                },
+                        errorMessage = null
+                    )
+
+            } catch (e: Exception) {
+
+                _formState.value =
+                    _formState.value.copy(
+                        errorMessage =
+                            "Failed to remove attachment: ${e.message}"
+                    )
+            }
+        }
+
+    } else {
+
+        // Attachment tạm của Create Task
+        _formState.value =
+            state.copy(
+                attachments =
+                    state.attachments.filterNot {
+                        it.uri == attachment.uri
+                    },
+
+                pendingAttachmentUris =
+                    state.pendingAttachmentUris.filterNot {
+                        it.toString() == attachment.uri
+                    },
+
+                errorMessage = null
+            )
+    }
+}
 
     // ─────────────────────────────────────────────────────────────
     // Load task khi Edit
@@ -350,6 +406,7 @@ class TaskFormViewModel(
                 isLoading = true,
                 errorMessage = null
             )
+    
 
         // ─────────────────────────────────────────────────────────
         // Save database

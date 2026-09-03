@@ -32,6 +32,7 @@ import java.util.Locale
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.uth.taskmanagement.attachment.AttachmentPicker
 import com.uth.taskmanagement.ui.attachment.AttachmentAdapter
+import com.uth.taskmanagement.data.model.TaskAttachmentEntity
 
 class TaskFormFragment : Fragment() {
 
@@ -138,36 +139,31 @@ class TaskFormFragment : Fragment() {
     }
     private fun setupAttachmentUI() {
 
-    attachmentAdapter =
-        AttachmentAdapter(
-            onAttachmentClick = {
-                // Task 24/26 sẽ xử lý mở file.
-            },
-            onRemoveClick = {
-                // Task 25 sẽ xử lý remove.
-            }
-        )
+        attachmentAdapter =
+            AttachmentAdapter(
+                onAttachmentClick = {
+                    // chưa xử lý
+                },
 
-    binding.rvAttachments.apply {
+                onRemoveClick = { attachment ->
 
-        layoutManager =
-            LinearLayoutManager(
-                requireContext()
+                    showRemoveAttachmentDialog(
+                        attachment
+                    )
+                }
             )
 
-        adapter =
-            attachmentAdapter
-    }
+        binding.rvAttachments.apply {
+            layoutManager =
+                LinearLayoutManager(requireContext())
 
-    attachmentPicker =
-        AttachmentPicker(
-            this
-        ) { uri ->
-
-            viewModel.addAttachment(
-                uri
-            )
+            adapter = attachmentAdapter
         }
+
+        attachmentPicker =
+            AttachmentPicker(this) { uri ->
+                viewModel.addAttachment(uri)
+            }
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -917,6 +913,37 @@ class TaskFormFragment : Fragment() {
             } else {
                 "Save Task"
             }
+    }
+    // ─────────────────────────────────────────────────────────────
+    // Remove Attachment
+    // ─────────────────────────────────────────────────────────────
+
+    private fun showRemoveAttachmentDialog(
+        attachment: TaskAttachmentEntity
+    ) {
+
+        MaterialAlertDialogBuilder(
+            requireContext()
+        )
+            .setTitle(
+                "Remove attachment"
+            )
+            .setMessage(
+                "Remove this attachment?"
+            )
+            .setNegativeButton(
+                "Cancel",
+                null
+            )
+            .setPositiveButton(
+                "Remove"
+            ) { _, _ ->
+
+                viewModel.removeAttachment(
+                    attachment
+                )
+            }
+            .show()
     }
 
     // ─────────────────────────────────────────────────────────────
