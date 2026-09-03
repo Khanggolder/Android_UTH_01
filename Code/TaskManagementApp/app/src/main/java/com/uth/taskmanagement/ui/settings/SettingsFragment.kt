@@ -41,11 +41,31 @@ class SettingsFragment : Fragment() {
         )
     }
 
-    private val exportLauncher = registerForActivityResult(
+    private val jsonExportLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        uri?.let {
+            viewModel.exportTaskData(it) { result ->
+                handleResult(
+                    result,
+                    successMessage = "Task data exported successfully",
+                    failureAction = "Task data export failed"
+                )
+            }
+        }
+    }
+
+    private val portableExportLauncher = registerForActivityResult(
         ActivityResultContracts.CreateDocument("application/zip")
     ) { uri ->
         uri?.let {
-            viewModel.exportTasks(it) { result -> handleResult(result, isExport = true) }
+            viewModel.exportPortableBackup(it) { result ->
+                handleResult(
+                    result,
+                    successMessage = "Portable backup exported successfully",
+                    failureAction = "Portable backup export failed"
+                )
+            }
         }
     }
 
@@ -84,9 +104,13 @@ class SettingsFragment : Fragment() {
                 .addToBackStack("pin_setup")
                 .commit()
         }
-        binding.rowExport.setOnClickListener {
+        binding.rowExportJson.setOnClickListener {
             val timestamp = SimpleDateFormat("yyyyMMdd_HHmm", Locale.US).format(Date())
-            exportLauncher.launch("TaskManagementBackup_$timestamp.zip")
+            jsonExportLauncher.launch("TaskManagementData_$timestamp.json")
+        }
+        binding.rowPortableBackup.setOnClickListener {
+            val timestamp = SimpleDateFormat("yyyyMMdd_HHmm", Locale.US).format(Date())
+            portableExportLauncher.launch("TaskManagementBackup_$timestamp.zip")
         }
         binding.rowRestore.setOnClickListener {
             restoreLauncher.launch(
@@ -174,20 +198,27 @@ class SettingsFragment : Fragment() {
             .setTitle("Restore data")
             .setMessage("Current tasks will be replaced by the selected backup file. Continue?")
             .setPositiveButton("Restore") { _, _ ->
-                viewModel.restoreTasks(uri) { result -> handleResult(result, isExport = false) }
+                viewModel.restoreTasks(uri) { result ->
+                    handleResult(
+                        result,
+                        successMessage = "Backup restored successfully",
+                        failureAction = "Restore failed"
+                    )
+                }
             }
             .setNegativeButton("Cancel", null)
             .show()
     }
 
-    private fun handleResult(result: Result<Unit>, isExport: Boolean) {
+    private fun handleResult(
+        result: Result<Unit>,
+        successMessage: String,
+        failureAction: String
+    ) {
         val message = result.fold(
-            onSuccess = {
-                if (isExport) "Backup exported successfully" else "Backup restored successfully"
-            },
+            onSuccess = { successMessage },
             onFailure = { error ->
-                val action = if (isExport) "Backup export failed" else "Restore failed"
-                "$action: ${error.message ?: "Unknown error"}"
+                "$failureAction: ${error.message ?: "Unknown error"}"
             }
         )
         showMessage(message)

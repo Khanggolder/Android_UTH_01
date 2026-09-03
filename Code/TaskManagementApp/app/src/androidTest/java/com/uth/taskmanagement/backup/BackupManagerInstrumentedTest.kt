@@ -29,6 +29,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.io.RandomAccessFile
 import java.util.UUID
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
@@ -125,6 +126,98 @@ class BackupManagerInstrumentedTest {
             storageAfterRestart.resolveOwnedFile(restoredPdf)
         )
         assertEquals("content", providerUri.scheme)
+    }
+
+    @Test
+    fun exportJsonVersionTwo_createsValidJsonAndRestoresTaskData() = runBlocking {
+        val taskId = insertTask("JSON task")
+        val source = createFile("json-metadata.txt", "metadata-source".toByteArray())
+        addExternalAttachment(taskId, source, "text/plain")
+
+        val backupFile = File(testDirectory, "task-data.json")
+        backupManager.exportTaskData(Uri.fromFile(backupFile)).getOrThrow()
+
+        val root = JSONObject(backupFile.readText())
+        assertEquals(BackupManager.JSON_BACKUP_VERSION, root.getInt("version"))
+        val exportedTask = root.getJSONArray("tasks").getJSONObject(0)
+        val exportedAttachment = exportedTask.getJSONArray("attachments").getJSONObject(0)
+        assertEquals("JSON task", exportedTask.getString("title"))
+        assertEquals("json-metadata.txt", exportedAttachment.getString("fileName"))
+        assertTrue(exportedAttachment.has("uri"))
+        assertFalse(exportedAttachment.has("archivePath"))
+
+        database.replaceBackupData(emptyList(), emptyList())
+        backupManager.restoreTasks(Uri.fromFile(backupFile)).getOrThrow()
+
+        assertEquals("JSON task", taskRepository.getAllTasks().single().title)
+        assertEquals("json-metadata.txt", attachmentRepository.getAllAttachments().single().fileName)
+    }
+
+    @Test
+    fun portableExport_rejectsAttachmentLargerThanSingleEntryLimit() = runBlocking {
+        val taskId = insertTask("Oversized attachment")
+        addExternalAttachment(
+            taskId = taskId,
+            file = createSparseFile(
+                "oversized.bin",
+                BackupArchiveSafety.MAX_SINGLE_ENTRY_BYTES + 1
+            ),
+            mimeType = "application/octet-stream"
+        )
+
+        val result = backupManager.exportTasks(
+            Uri.fromFile(File(testDirectory, "oversized.zip"))
+        )
+
+        assertTrue(result.isFailure)
+        assertTrue(
+            result.exceptionOrNull()?.message.orEmpty()
+                .contains("Attachment 'oversized.bin' is too large for backup")
+        )
+    }
+
+    @Test
+    fun portableExport_rejectsTotalAttachmentSizeAboveLimit() = runBlocking {
+        val taskId = insertTask("Oversized total")
+        repeat(3) { index ->
+            addExternalAttachment(
+                taskId = taskId,
+                file = createSparseFile("part-$index.bin", 200L * 1024 * 1024),
+                mimeType = "application/octet-stream"
+            )
+        }
+
+        val result = backupManager.exportTasks(
+            Uri.fromFile(File(testDirectory, "oversized-total.zip"))
+        )
+
+        assertTrue(result.isFailure)
+        assertTrue(
+            result.exceptionOrNull()?.message.orEmpty()
+                .contains("Total attachment size exceeds backup limit")
+        )
+    }
+
+    @Test
+    fun invalidTaskDateRange_isRejectedWithoutReplacingCurrentDatabase() = runBlocking {
+        insertTask("Keep existing task")
+        val invalidTask = taskJson(70L, "Invalid dates").apply {
+            put("startDateTime", 3000L)
+            put("dueDateTime", 2000L)
+        }
+        val backupFile = File(testDirectory, "invalid-dates.json")
+        backupFile.writeText(
+            JSONObject()
+                .put("version", BackupManager.JSON_BACKUP_VERSION)
+                .put("tasks", JSONArray().put(invalidTask))
+                .toString()
+        )
+
+        val result = backupManager.restoreTasks(Uri.fromFile(backupFile))
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull()?.message.orEmpty().contains("startDateTime"))
+        assertEquals("Keep existing task", taskRepository.getAllTasks().single().title)
     }
 
     @Test
@@ -397,6 +490,13 @@ class BackupManagerInstrumentedTest {
         return File(testDirectory, relativePath).apply {
             parentFile?.mkdirs()
             writeBytes(bytes)
+        }
+    }
+
+    private fun createSparseFile(relativePath: String, sizeBytes: Long): File {
+        return File(testDirectory, relativePath).apply {
+            parentFile?.mkdirs()
+            RandomAccessFile(this, "rw").use { file -> file.setLength(sizeBytes) }
         }
     }
 

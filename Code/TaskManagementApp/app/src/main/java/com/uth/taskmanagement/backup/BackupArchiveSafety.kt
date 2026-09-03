@@ -6,6 +6,8 @@ import java.io.IOException
 internal object BackupArchiveSafety {
     const val MANIFEST_ENTRY = "backup.json"
     const val ATTACHMENT_PREFIX = "attachments/"
+    const val MAX_SINGLE_ENTRY_BYTES = 250L * 1024 * 1024
+    const val MAX_TOTAL_UNCOMPRESSED_BYTES = 500L * 1024 * 1024
 
     fun validateEntryPath(path: String, allowDirectory: Boolean): String {
         if (

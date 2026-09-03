@@ -41,7 +41,13 @@ class SettingsViewModel(
         }
     }
 
-    fun exportTasks(uri: Uri, onResult: (Result<Unit>) -> Unit) {
+    fun exportTaskData(uri: Uri, onResult: (Result<Unit>) -> Unit) {
+        viewModelScope.launch {
+            onResult(backupManager.exportTaskData(uri))
+        }
+    }
+
+    fun exportPortableBackup(uri: Uri, onResult: (Result<Unit>) -> Unit) {
         viewModelScope.launch {
             onResult(backupManager.exportTasks(uri))
         }

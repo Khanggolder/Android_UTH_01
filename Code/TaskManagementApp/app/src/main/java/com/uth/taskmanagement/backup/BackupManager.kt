@@ -44,43 +44,66 @@ class BackupManager(
         runCatching { exportZip(uri) }
     }
 
+    suspend fun exportTaskData(uri: Uri): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching { exportJson(uri) }
+    }
+
     suspend fun restoreTasks(uri: Uri): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching { restoreFromDocument(uri) }
     }
 
-    private suspend fun exportZip(uri: Uri) {
-        val tasks = taskRepository.getAllTasks()
-        val exportTasks = tasks.map { task ->
-            val attachments = attachmentRepository.getAttachments(task.id).map { attachment ->
-                if (!attachmentStorage.isReadable(attachment)) {
-                    throw BackupException(
-                        "Cannot export attachment '${attachment.fileName}' because the file is no longer available."
-                    )
-                }
-                ExportAttachment(
-                    entity = attachment,
-                    archivePath = createUniqueArchivePath(attachment.fileName)
-                )
-            }
-            ExportTask(task, attachments)
+    private suspend fun exportJson(uri: Uri) {
+        val exportTasks = loadExportTasks(includeArchivePaths = false)
+        val outputStream = context.contentResolver.openOutputStream(uri, "w")
+            ?: throw IOException("Could not open the selected file for writing")
+
+        outputStream.bufferedWriter(Charsets.UTF_8).use { writer ->
+            writer.write(buildBackupJson(exportTasks, JSON_BACKUP_VERSION).toString())
         }
+    }
+
+    private suspend fun exportZip(uri: Uri) {
+        val exportTasks = loadExportTasks(includeArchivePaths = true)
+        val manifestBytes = buildBackupJson(exportTasks, BACKUP_VERSION)
+            .toString()
+            .toByteArray(Charsets.UTF_8)
+        validateExportSizes(exportTasks, manifestBytes.size.toLong())
 
         val outputStream = context.contentResolver.openOutputStream(uri, "w")
             ?: throw IOException("Could not open the selected file for writing")
 
         ZipOutputStream(BufferedOutputStream(outputStream)).use { zip ->
             zip.putNextEntry(ZipEntry(BACKUP_JSON_ENTRY))
-            zip.write(buildBackupJson(exportTasks).toString().toByteArray(Charsets.UTF_8))
+            zip.write(manifestBytes)
             zip.closeEntry()
 
+            var totalBytes = manifestBytes.size.toLong()
             exportTasks.asSequence()
                 .flatMap { it.attachments.asSequence() }
                 .forEach { exportAttachment ->
-                    zip.putNextEntry(ZipEntry(exportAttachment.archivePath))
+                    zip.putNextEntry(ZipEntry(requireNotNull(exportAttachment.archivePath)))
                     try {
                         attachmentStorage.openInputStream(exportAttachment.entity).use { input ->
-                            input.copyTo(zip, COPY_BUFFER_SIZE)
+                            val buffer = ByteArray(COPY_BUFFER_SIZE)
+                            var entryBytes = 0L
+                            while (true) {
+                                val count = input.read(buffer)
+                                if (count < 0) break
+                                if (entryBytes > BackupArchiveSafety.MAX_SINGLE_ENTRY_BYTES - count) {
+                                    throw BackupException(
+                                        "Attachment '${exportAttachment.entity.fileName}' is too large for backup"
+                                    )
+                                }
+                                if (totalBytes > BackupArchiveSafety.MAX_TOTAL_UNCOMPRESSED_BYTES - count) {
+                                    throw BackupException("Total attachment size exceeds backup limit")
+                                }
+                                zip.write(buffer, 0, count)
+                                entryBytes += count
+                                totalBytes += count
+                            }
                         }
+                    } catch (error: BackupException) {
+                        throw error
                     } catch (error: Exception) {
                         throw BackupException(
                             "Cannot export attachment '${exportAttachment.entity.fileName}' because the file is no longer available.",
@@ -91,6 +114,50 @@ class BackupManager(
                     }
                 }
         }
+    }
+
+    private suspend fun loadExportTasks(includeArchivePaths: Boolean): List<ExportTask> {
+        return taskRepository.getAllTasks().map { task ->
+            val attachments = attachmentRepository.getAttachments(task.id).map { attachment ->
+                if (includeArchivePaths && !attachmentStorage.isReadable(attachment)) {
+                    throw BackupException(
+                        "Cannot export attachment '${attachment.fileName}' because the file is no longer available."
+                    )
+                }
+                ExportAttachment(
+                    entity = attachment,
+                    archivePath = if (includeArchivePaths) {
+                        createUniqueArchivePath(attachment.fileName)
+                    } else {
+                        null
+                    }
+                )
+            }
+            ExportTask(task, attachments)
+        }
+    }
+
+    private fun validateExportSizes(tasks: List<ExportTask>, manifestSize: Long) {
+        if (manifestSize > BackupArchiveSafety.MAX_SINGLE_ENTRY_BYTES) {
+            throw BackupException("Backup manifest is too large")
+        }
+
+        var totalBytes = manifestSize
+        tasks.asSequence()
+            .flatMap { it.attachments.asSequence() }
+            .forEach { exportAttachment ->
+                val attachment = exportAttachment.entity
+                val size = attachment.sizeBytes.coerceAtLeast(0L)
+                if (size > BackupArchiveSafety.MAX_SINGLE_ENTRY_BYTES) {
+                    throw BackupException(
+                        "Attachment '${attachment.fileName}' is too large for backup"
+                    )
+                }
+                if (totalBytes > BackupArchiveSafety.MAX_TOTAL_UNCOMPRESSED_BYTES - size) {
+                    throw BackupException("Total attachment size exceeds backup limit")
+                }
+                totalBytes += size
+            }
     }
 
     private suspend fun restoreFromDocument(uri: Uri) {
@@ -240,7 +307,10 @@ class BackupManager(
                             if (count < 0) break
                             entryBytes += count
                             totalBytes += count
-                            if (entryBytes > MAX_SINGLE_ENTRY_BYTES || totalBytes > MAX_TOTAL_UNCOMPRESSED_BYTES) {
+                            if (
+                                entryBytes > BackupArchiveSafety.MAX_SINGLE_ENTRY_BYTES ||
+                                totalBytes > BackupArchiveSafety.MAX_TOTAL_UNCOMPRESSED_BYTES
+                            ) {
                                 throw BackupException("The ZIP backup is too large")
                             }
                             output.write(buffer, 0, count)
@@ -320,6 +390,11 @@ class BackupManager(
         val createdAt = objectValue.optLong("createdAt", System.currentTimeMillis())
         val dueDateTime = objectValue.getLong("dueDateTime")
         val startDateTime = objectValue.optLong("startDateTime", createdAt)
+        if (startDateTime > dueDateTime) {
+            throw BackupException(
+                "Task '$title' has startDateTime after dueDateTime"
+            )
+        }
 
         return TaskEntity(
             id = id,
@@ -370,10 +445,7 @@ class BackupManager(
         } else {
             null
         }
-        val legacyUri = if (isZip) null else objectValue.optString("uri", "").ifBlank { null }
-        if (!isZip && legacyUri == null) {
-            throw BackupException("Legacy attachment '$fileName' does not contain a URI")
-        }
+        val legacyUri = if (isZip) null else objectValue.optString("uri", "")
 
         return RestoreAttachment(
             taskId = taskId,
@@ -396,7 +468,7 @@ class BackupManager(
             ?: throw BackupException("Unknown $key value '$raw'")
     }
 
-    private fun buildBackupJson(tasks: List<ExportTask>): JSONObject {
+    private fun buildBackupJson(tasks: List<ExportTask>, version: Int): JSONObject {
         val taskArray = JSONArray()
         tasks.forEach { exportTask ->
             val task = exportTask.entity
@@ -424,7 +496,11 @@ class BackupManager(
                     put("mimeType", attachment.mimeType)
                     put("sizeBytes", attachment.sizeBytes)
                     put("createdAt", attachment.createdAt)
-                    put("archivePath", exportAttachment.archivePath)
+                    if (version == BACKUP_VERSION) {
+                        put("archivePath", requireNotNull(exportAttachment.archivePath))
+                    } else {
+                        put("uri", attachment.uri)
+                    }
                 })
             }
             taskObject.put("attachments", attachmentArray)
@@ -432,7 +508,7 @@ class BackupManager(
         }
 
         return JSONObject().apply {
-            put("version", BACKUP_VERSION)
+            put("version", version)
             put("tasks", taskArray)
         }
     }
@@ -462,7 +538,7 @@ class BackupManager(
 
     private data class ExportAttachment(
         val entity: TaskAttachmentEntity,
-        val archivePath: String
+        val archivePath: String?
     )
 
     private data class RestorePayload(
@@ -503,11 +579,10 @@ class BackupManager(
     companion object {
         const val BACKUP_VERSION = 3
         internal const val BACKUP_JSON_ENTRY = BackupArchiveSafety.MANIFEST_ENTRY
-        private const val LEGACY_JSON_MAX_VERSION = 2
+        internal const val JSON_BACKUP_VERSION = 2
+        private const val LEGACY_JSON_MAX_VERSION = JSON_BACKUP_VERSION
         private const val RESTORE_STAGING_DIRECTORY = "backup-restore"
         private const val COPY_BUFFER_SIZE = 16 * 1024
         private const val MAX_ZIP_ENTRIES = 2_000
-        private const val MAX_SINGLE_ENTRY_BYTES = 250L * 1024 * 1024
-        private const val MAX_TOTAL_UNCOMPRESSED_BYTES = 500L * 1024 * 1024
     }
 }
