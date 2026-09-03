@@ -14,6 +14,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import android.net.Uri
+import com.uth.taskmanagement.attachment.AttachmentFileHelper
+import com.uth.taskmanagement.data.model.TaskAttachmentEntity
+import com.uth.taskmanagement.TaskManagementApp
+import com.uth.taskmanagement.attachment.PendingAttachmentManager
+import com.uth.taskmanagement.data.repository.AttachmentRepository
+
 
 data class TaskFormState(
     val taskId: Long = -1L,
@@ -28,6 +35,8 @@ data class TaskFormState(
     val status: TaskStatus = TaskStatus.PENDING,
     val reminderTime: Long? = null,
     val recurrenceType: RecurrenceType = RecurrenceType.NONE,
+    val attachments: List<TaskAttachmentEntity> = emptyList(),
+    val pendingAttachmentUris: List<Uri> = emptyList(),
 
     val isLoading: Boolean = false,
     val isSaved: Boolean = false,
@@ -36,7 +45,8 @@ data class TaskFormState(
 
 class TaskFormViewModel(
     application: Application,
-    private val repository: TaskRepository
+    private val repository: TaskRepository,
+    private val attachmentRepository: AttachmentRepository
 ) : AndroidViewModel(application) {
 
     private val _formState =
@@ -113,6 +123,139 @@ class TaskFormViewModel(
             )
     }
 
+    fun addAttachment(uri: Uri) {
+
+        val context =
+            getApplication<Application>()
+                .applicationContext
+
+        val state = _formState.value
+
+        try {
+
+            val attachment =
+                AttachmentFileHelper.buildAttachmentEntity(
+                    context = context,
+                    uri = uri,
+                    taskId =
+                        if (state.taskId > 0L) {
+                            state.taskId
+                        } else {
+                            0L
+                        }
+                )
+
+            // EDIT TASK: đã có taskId -> lưu DB ngay
+            if (state.taskId > 0L) {
+
+                viewModelScope.launch {
+
+                    try {
+
+                        val newId =
+                            attachmentRepository.addAttachment(
+                                attachment
+                            )
+
+                        _formState.value =
+                            _formState.value.copy(
+                                attachments =
+                                    _formState.value.attachments +
+                                        attachment.copy(id = newId),
+                                errorMessage = null
+                            )
+
+                    } catch (e: Exception) {
+
+                        _formState.value =
+                            _formState.value.copy(
+                                errorMessage =
+                                    "Failed to add attachment: ${e.message}"
+                            )
+                    }
+                }
+
+            } else {
+
+                // CREATE TASK: chỉ giữ tạm, Task 23 sẽ lưu khi Save
+                _formState.value =
+                    state.copy(
+                        attachments =
+                            state.attachments + attachment,
+
+                        pendingAttachmentUris =
+                            state.pendingAttachmentUris + uri,
+
+                        errorMessage = null
+                    )
+            }
+
+        } catch (e: Exception) {
+
+            _formState.value =
+                state.copy(
+                    errorMessage =
+                        "Failed to add attachment: ${e.message}"
+                )
+        }
+    }
+    fun removeAttachment(
+    attachment: TaskAttachmentEntity
+) {
+
+    val state = _formState.value
+
+    // Attachment đã lưu DB
+    if (attachment.id > 0L) {
+
+        viewModelScope.launch {
+
+            try {
+
+                attachmentRepository.deleteAttachment(
+                    attachment.id
+                )
+
+                _formState.value =
+                    _formState.value.copy(
+                        attachments =
+                            _formState.value.attachments
+                                .filterNot {
+                                    it.id == attachment.id
+                                },
+                        errorMessage = null
+                    )
+
+            } catch (e: Exception) {
+
+                _formState.value =
+                    _formState.value.copy(
+                        errorMessage =
+                            "Failed to remove attachment: ${e.message}"
+                    )
+            }
+        }
+
+    } else {
+
+        // Attachment tạm của Create Task
+        _formState.value =
+            state.copy(
+                attachments =
+                    state.attachments.filterNot {
+                        it.uri == attachment.uri
+                    },
+
+                pendingAttachmentUris =
+                    state.pendingAttachmentUris.filterNot {
+                        it.toString() == attachment.uri
+                    },
+
+                errorMessage = null
+            )
+    }
+}
+
     // ─────────────────────────────────────────────────────────────
     // Load task khi Edit
     // ─────────────────────────────────────────────────────────────
@@ -129,11 +272,15 @@ class TaskFormViewModel(
                     repository.getTaskById(taskId)
                         ?: return@launch
 
+                val attachments =
+                    attachmentRepository.getAttachments(taskId)
+
                 _formState.value =
                     TaskFormState(
                         taskId = task.id,
                         title = task.title,
                         description = task.description,
+                        attachments = attachments,
 
                         // Timeline
                         startDateTime = task.startDateTime,
@@ -259,6 +406,7 @@ class TaskFormViewModel(
                 isLoading = true,
                 errorMessage = null
             )
+    
 
         // ─────────────────────────────────────────────────────────
         // Save database
@@ -329,6 +477,26 @@ class TaskFormViewModel(
                         repository.insertTask(
                             newTask
                         )
+
+                    if (state.pendingAttachmentUris.isNotEmpty()) {
+
+                        val app =
+                            getApplication<Application>()
+                                as TaskManagementApp
+
+                        val pendingAttachmentManager =
+                            PendingAttachmentManager(
+                                app.attachmentRepository
+                            )
+
+                        pendingAttachmentManager
+                            .commitPendingAttachments(
+                                context = context,
+                                pendingUris =
+                                    state.pendingAttachmentUris,
+                                taskId = newId
+                            )
+                    }
 
                     // Schedule reminder
                     if (

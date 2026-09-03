@@ -29,6 +29,10 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.uth.taskmanagement.attachment.AttachmentPicker
+import com.uth.taskmanagement.ui.attachment.AttachmentAdapter
+import com.uth.taskmanagement.data.model.TaskAttachmentEntity
 
 class TaskFormFragment : Fragment() {
 
@@ -53,6 +57,10 @@ class TaskFormFragment : Fragment() {
         get() = _binding!!
 
     private lateinit var viewModel: TaskFormViewModel
+    
+    private lateinit var attachmentAdapter: AttachmentAdapter
+
+    private lateinit var attachmentPicker: AttachmentPicker
 
     private val dateTimeFormat =
         SimpleDateFormat(
@@ -100,6 +108,8 @@ class TaskFormFragment : Fragment() {
 
         setupViewModel()
 
+        setupAttachmentUI()
+
         setupTaskMode()
 
         setupClickListeners()
@@ -122,9 +132,38 @@ class TaskFormFragment : Fragment() {
                 this,
                 TaskFormViewModelFactory(
                     app,
-                    app.taskRepository
+                    app.taskRepository,
+                    app.attachmentRepository
                 )
             )[TaskFormViewModel::class.java]
+    }
+    private fun setupAttachmentUI() {
+
+        attachmentAdapter =
+            AttachmentAdapter(
+                onAttachmentClick = {
+                    // chưa xử lý
+                },
+
+                onRemoveClick = { attachment ->
+
+                    showRemoveAttachmentDialog(
+                        attachment
+                    )
+                }
+            )
+
+        binding.rvAttachments.apply {
+            layoutManager =
+                LinearLayoutManager(requireContext())
+
+            adapter = attachmentAdapter
+        }
+
+        attachmentPicker =
+            AttachmentPicker(this) { uri ->
+                viewModel.addAttachment(uri)
+            }
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -321,6 +360,12 @@ class TaskFormFragment : Fragment() {
                 }
             }
         )
+
+        // Attachment
+        binding.btnAddAttachment.setOnClickListener {
+
+            attachmentPicker.launch()
+        }
 
         // Save
         binding.btnSave.setOnClickListener {
@@ -622,6 +667,8 @@ class TaskFormFragment : Fragment() {
 
                     updateFormFields(state)
 
+                    updateAttachmentsUI(state)
+
                     updatePriorityButtons(
                         state.priority
                     )
@@ -704,6 +751,32 @@ class TaskFormFragment : Fragment() {
                 )
             )
     }
+
+    private fun updateAttachmentsUI(
+    state: TaskFormState
+) {
+
+    attachmentAdapter.submitList(
+        state.attachments
+    )
+
+    if (state.attachments.isEmpty()) {
+
+        binding.tvNoAttachments.visibility =
+            View.VISIBLE
+
+        binding.rvAttachments.visibility =
+            View.GONE
+
+    } else {
+
+        binding.tvNoAttachments.visibility =
+            View.GONE
+
+        binding.rvAttachments.visibility =
+            View.VISIBLE
+    }
+}
 
     // ─────────────────────────────────────────────────────────────
     // Edit mode UI
@@ -840,6 +913,37 @@ class TaskFormFragment : Fragment() {
             } else {
                 "Save Task"
             }
+    }
+    // ─────────────────────────────────────────────────────────────
+    // Remove Attachment
+    // ─────────────────────────────────────────────────────────────
+
+    private fun showRemoveAttachmentDialog(
+        attachment: TaskAttachmentEntity
+    ) {
+
+        MaterialAlertDialogBuilder(
+            requireContext()
+        )
+            .setTitle(
+                "Remove attachment"
+            )
+            .setMessage(
+                "Remove this attachment?"
+            )
+            .setNegativeButton(
+                "Cancel",
+                null
+            )
+            .setPositiveButton(
+                "Remove"
+            ) { _, _ ->
+
+                viewModel.removeAttachment(
+                    attachment
+                )
+            }
+            .show()
     }
 
     // ─────────────────────────────────────────────────────────────
