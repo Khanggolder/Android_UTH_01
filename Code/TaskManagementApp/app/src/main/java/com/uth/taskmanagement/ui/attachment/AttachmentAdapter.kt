@@ -116,7 +116,11 @@ class AttachmentAdapter(
             oldItem: TaskAttachmentEntity,
             newItem: TaskAttachmentEntity
         ): Boolean {
-            return oldItem.id == newItem.id
+            return if (oldItem.id > 0L && newItem.id > 0L) {
+                oldItem.id == newItem.id
+            } else {
+                oldItem.uri == newItem.uri
+            }
         }
 
         override fun areContentsTheSame(
