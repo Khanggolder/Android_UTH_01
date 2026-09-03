@@ -33,6 +33,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.uth.taskmanagement.attachment.AttachmentPicker
 import com.uth.taskmanagement.ui.attachment.AttachmentAdapter
 import com.uth.taskmanagement.data.model.TaskAttachmentEntity
+import com.uth.taskmanagement.attachment.AttachmentFileHelper
 
 class TaskFormFragment : Fragment() {
 
@@ -139,19 +140,23 @@ class TaskFormFragment : Fragment() {
     }
     private fun setupAttachmentUI() {
 
-        attachmentAdapter =
-            AttachmentAdapter(
-                onAttachmentClick = {
-                    // chưa xử lý
-                },
+attachmentAdapter =
+    AttachmentAdapter(
+        onAttachmentClick = { attachment ->
 
-                onRemoveClick = { attachment ->
-
-                    showRemoveAttachmentDialog(
-                        attachment
-                    )
-                }
+            AttachmentFileHelper.openAttachment(
+                requireContext(),
+                attachment
             )
+        },
+
+        onRemoveClick = { attachment ->
+
+            showRemoveAttachmentDialog(
+                attachment
+            )
+        }
+    )
 
         binding.rvAttachments.apply {
             layoutManager =
