@@ -8,6 +8,7 @@ import com.uth.taskmanagement.data.repository.TaskRepository
 import com.uth.taskmanagement.data.repository.UserRepository
 import com.uth.taskmanagement.security.PinPreferences
 import com.uth.taskmanagement.backup.ReminderSchedulerImpl
+import com.uth.taskmanagement.attachment.AttachmentStorage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -18,29 +19,41 @@ class TaskManagementApp : Application() {
     // Application-scoped coroutine scope – tự huỷ khi process kết thúc
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
-    val taskRepository: TaskRepository by lazy {
-        val db = TaskDatabase.getInstance(this)
-        TaskRepository(db.taskDao())
+    private val database: TaskDatabase by lazy {
+        TaskDatabase.getInstance(this)
     }
 
-    val userRepository: UserRepository by lazy {
-        val db = TaskDatabase.getInstance(this)
-        UserRepository(db.userDao())
+    val attachmentStorage: AttachmentStorage by lazy {
+        AttachmentStorage(this)
     }
 
     val attachmentRepository: AttachmentRepository by lazy {
-        val db = TaskDatabase.getInstance(this)
-        AttachmentRepository(db.attachmentDao())
+        AttachmentRepository(database.attachmentDao(), attachmentStorage)
+    }
+
+    val taskRepository: TaskRepository by lazy {
+        TaskRepository(database.taskDao(), attachmentRepository)
+    }
+
+    val userRepository: UserRepository by lazy {
+        UserRepository(database.userDao())
     }
 
     val pinPreferences: PinPreferences by lazy {
         PinPreferences(this)
     }
     val reminderScheduler: ReminderSchedulerImpl by lazy {
-        ReminderSchedulerImpl(this)
+        ReminderSchedulerImpl(this, taskRepository)
     }
     val backupManager: BackupManager by lazy {
-        BackupManager(taskRepository, attachmentRepository, reminderScheduler, this)
+        BackupManager(
+            taskRepository = taskRepository,
+            attachmentRepository = attachmentRepository,
+            reminderScheduler = reminderScheduler,
+            database = database,
+            attachmentStorage = attachmentStorage,
+            context = this
+        )
     }
 
     override fun onCreate() {

@@ -5,6 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.withTransaction
 import com.uth.taskmanagement.data.model.TaskAttachmentEntity
 import com.uth.taskmanagement.data.model.TaskEntity
 import com.uth.taskmanagement.data.model.UserEntity
@@ -13,7 +14,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [TaskEntity::class, UserEntity::class, TaskAttachmentEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -24,6 +25,19 @@ abstract class TaskDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
 
     abstract fun attachmentDao(): AttachmentDao
+
+    suspend fun replaceBackupData(
+        tasks: List<TaskEntity>,
+        attachments: List<TaskAttachmentEntity>
+    ) {
+        withTransaction {
+            taskDao().deleteAllTasks()
+            taskDao().insertTasks(tasks)
+            if (attachments.isNotEmpty()) {
+                attachmentDao().insertAll(attachments)
+            }
+        }
+    }
 
     companion object {
 
@@ -37,7 +51,7 @@ abstract class TaskDatabase : RoomDatabase() {
                         TaskDatabase::class.java,
                         "task_management.db"
                     )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                     .also { database ->
                         INSTANCE = database
@@ -144,6 +158,19 @@ abstract class TaskDatabase : RoomDatabase() {
                     SET startDateTime = dueDateTime
                     WHERE startDateTime > dueDateTime
                     """.trimIndent()
+                )
+            }
+        }
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE task_attachments " +
+                        "ADD COLUMN isAppOwned INTEGER NOT NULL DEFAULT 0"
+                )
+                db.execSQL(
+                    "ALTER TABLE task_attachments " +
+                        "ADD COLUMN localRelativePath TEXT DEFAULT NULL"
                 )
             }
         }

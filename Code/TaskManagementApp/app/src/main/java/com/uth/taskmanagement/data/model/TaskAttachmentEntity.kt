@@ -41,5 +41,12 @@ data class TaskAttachmentEntity(
     val sizeBytes: Long = 0L,
 
     /** Thời điểm attachment được thêm vào (epoch millis). */
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+
+    /** True only when the physical file is managed inside app-private storage. */
+    @ColumnInfo(defaultValue = "0")
+    val isAppOwned: Boolean = false,
+
+    /** Path relative to filesDir for an app-owned attachment. */
+    val localRelativePath: String? = null
 )

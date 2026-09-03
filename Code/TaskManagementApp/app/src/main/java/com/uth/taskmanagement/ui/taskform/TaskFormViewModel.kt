@@ -17,9 +17,10 @@ import kotlinx.coroutines.launch
 import android.net.Uri
 import com.uth.taskmanagement.attachment.AttachmentFileHelper
 import com.uth.taskmanagement.data.model.TaskAttachmentEntity
-import com.uth.taskmanagement.TaskManagementApp
 import com.uth.taskmanagement.attachment.PendingAttachmentManager
 import com.uth.taskmanagement.data.repository.AttachmentRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 
 data class TaskFormState(
@@ -125,6 +126,8 @@ class TaskFormViewModel(
 
     fun addAttachment(uri: Uri) {
 
+        viewModelScope.launch {
+
         val context =
             getApplication<Application>()
                 .applicationContext
@@ -133,7 +136,7 @@ class TaskFormViewModel(
 
         try {
 
-            val attachment =
+            val attachment = withContext(Dispatchers.IO) {
                 AttachmentFileHelper.buildAttachmentEntity(
                     context = context,
                     uri = uri,
@@ -144,6 +147,7 @@ class TaskFormViewModel(
                             0L
                         }
                 )
+            }
 
             // EDIT TASK: đã có taskId -> lưu DB ngay
             if (state.taskId > 0L) {
@@ -179,12 +183,12 @@ class TaskFormViewModel(
 
                 // CREATE TASK: chỉ giữ tạm, Task 23 sẽ lưu khi Save
                 _formState.value =
-                    state.copy(
+                    _formState.value.copy(
                         attachments =
-                            state.attachments + attachment,
+                            _formState.value.attachments + attachment,
 
                         pendingAttachmentUris =
-                            state.pendingAttachmentUris + uri,
+                            _formState.value.pendingAttachmentUris + uri,
 
                         errorMessage = null
                     )
@@ -197,6 +201,7 @@ class TaskFormViewModel(
                     errorMessage =
                         "Failed to add attachment: ${e.message}"
                 )
+        }
         }
     }
     fun removeAttachment(
@@ -414,6 +419,8 @@ class TaskFormViewModel(
 
         viewModelScope.launch {
 
+            var createdTaskId: Long? = null
+
             try {
 
                 val context =
@@ -477,16 +484,13 @@ class TaskFormViewModel(
                         repository.insertTask(
                             newTask
                         )
+                    createdTaskId = newId
 
                     if (state.pendingAttachmentUris.isNotEmpty()) {
 
-                        val app =
-                            getApplication<Application>()
-                                as TaskManagementApp
-
                         val pendingAttachmentManager =
                             PendingAttachmentManager(
-                                app.attachmentRepository
+                                attachmentRepository
                             )
 
                         pendingAttachmentManager
@@ -619,11 +623,25 @@ class TaskFormViewModel(
 
             } catch (e: Exception) {
 
+                val rollbackError = createdTaskId?.let { taskId ->
+                    runCatching {
+                        RecurrenceScheduler.cancelAlarm(
+                            getApplication<Application>().applicationContext,
+                            taskId
+                        )
+                        repository.deleteTaskById(taskId)
+                    }.exceptionOrNull()
+                }
+
                 _formState.value =
                     _formState.value.copy(
                         isLoading = false,
                         errorMessage =
-                            "Failed to save task: ${e.message}"
+                            if (rollbackError == null) {
+                                "Failed to save task: ${e.message}"
+                            } else {
+                                "Failed to save task and rollback: ${rollbackError.message}"
+                            }
                     )
             }
         }
