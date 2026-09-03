@@ -131,7 +131,8 @@ class TaskFormFragment : Fragment() {
                 this,
                 TaskFormViewModelFactory(
                     app,
-                    app.taskRepository
+                    app.taskRepository,
+                    app.attachmentRepository
                 )
             )[TaskFormViewModel::class.java]
     }
