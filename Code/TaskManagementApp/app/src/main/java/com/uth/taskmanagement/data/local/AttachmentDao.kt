@@ -26,6 +26,9 @@ interface AttachmentDao {
     @Query("DELETE FROM task_attachments WHERE taskId = :taskId")
     suspend fun deleteByTaskId(taskId: Long)
 
+    @Query("DELETE FROM task_attachments")
+    suspend fun deleteAll()
+
     /** observeAttachmentsByTaskId — Flow tự cập nhật khi danh sách thay đổi. */
     @Query("SELECT * FROM task_attachments WHERE taskId = :taskId ORDER BY createdAt ASC")
     fun observeByTaskId(taskId: Long): Flow<List<TaskAttachmentEntity>>
@@ -37,4 +40,7 @@ interface AttachmentDao {
     /** getAttachmentById — lấy 1 attachment theo id. */
     @Query("SELECT * FROM task_attachments WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): TaskAttachmentEntity?
+
+    @Query("SELECT * FROM task_attachments ORDER BY id ASC")
+    suspend fun getAll(): List<TaskAttachmentEntity>
 }
