@@ -24,6 +24,9 @@ import com.uth.taskmanagement.databinding.FragmentSettingsBinding
 import com.uth.taskmanagement.R
 import com.uth.taskmanagement.security.PinSetupFragment
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class SettingsFragment : Fragment() {
 
@@ -39,10 +42,10 @@ class SettingsFragment : Fragment() {
     }
 
     private val exportLauncher = registerForActivityResult(
-        ActivityResultContracts.CreateDocument("application/json")
+        ActivityResultContracts.CreateDocument("application/zip")
     ) { uri ->
         uri?.let {
-            viewModel.exportTasks(it) { success -> handleResult(success, isExport = true) }
+            viewModel.exportTasks(it) { result -> handleResult(result, isExport = true) }
         }
     }
 
@@ -82,10 +85,13 @@ class SettingsFragment : Fragment() {
                 .commit()
         }
         binding.rowExport.setOnClickListener {
-            exportLauncher.launch("tasks_backup_${System.currentTimeMillis()}.json")
+            val timestamp = SimpleDateFormat("yyyyMMdd_HHmm", Locale.US).format(Date())
+            exportLauncher.launch("TaskManagementBackup_$timestamp.zip")
         }
         binding.rowRestore.setOnClickListener {
-            restoreLauncher.launch(arrayOf("application/json"))
+            restoreLauncher.launch(
+                arrayOf("application/zip", "application/json", "text/json", "*/*")
+            )
         }
         binding.rowNotificationPermission.setOnClickListener {
             handleNotificationPermission()
@@ -168,19 +174,22 @@ class SettingsFragment : Fragment() {
             .setTitle("Restore data")
             .setMessage("Current tasks will be replaced by the selected backup file. Continue?")
             .setPositiveButton("Restore") { _, _ ->
-                viewModel.restoreTasks(uri) { success -> handleResult(success, isExport = false) }
+                viewModel.restoreTasks(uri) { result -> handleResult(result, isExport = false) }
             }
             .setNegativeButton("Cancel", null)
             .show()
     }
 
-    private fun handleResult(success: Boolean, isExport: Boolean) {
-        val message = when {
-            success && isExport -> "Backup exported successfully"
-            success && !isExport -> "Backup restored successfully"
-            !success && isExport -> "Backup export failed"
-            else -> "Restore failed. Please check the JSON file."
-        }
+    private fun handleResult(result: Result<Unit>, isExport: Boolean) {
+        val message = result.fold(
+            onSuccess = {
+                if (isExport) "Backup exported successfully" else "Backup restored successfully"
+            },
+            onFailure = { error ->
+                val action = if (isExport) "Backup export failed" else "Restore failed"
+                "$action: ${error.message ?: "Unknown error"}"
+            }
+        )
         showMessage(message)
     }
 
