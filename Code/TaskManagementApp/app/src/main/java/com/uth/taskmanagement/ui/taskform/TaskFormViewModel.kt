@@ -17,6 +17,8 @@ import kotlinx.coroutines.launch
 import android.net.Uri
 import com.uth.taskmanagement.attachment.AttachmentFileHelper
 import com.uth.taskmanagement.data.model.TaskAttachmentEntity
+import com.uth.taskmanagement.TaskManagementApp
+import com.uth.taskmanagement.attachment.PendingAttachmentManager
 
 data class TaskFormState(
     val taskId: Long = -1L,
@@ -32,6 +34,7 @@ data class TaskFormState(
     val reminderTime: Long? = null,
     val recurrenceType: RecurrenceType = RecurrenceType.NONE,
     val attachments: List<TaskAttachmentEntity> = emptyList(),
+    val pendingAttachmentUris: List<Uri> = emptyList(),
 
     val isLoading: Boolean = false,
     val isSaved: Boolean = false,
@@ -145,6 +148,10 @@ class TaskFormViewModel(
                 state.copy(
                     attachments =
                         state.attachments + attachment,
+
+                    pendingAttachmentUris =
+                        state.pendingAttachmentUris + uri,
+
                     errorMessage = null
                 )
 
@@ -374,6 +381,26 @@ class TaskFormViewModel(
                         repository.insertTask(
                             newTask
                         )
+
+                    if (state.pendingAttachmentUris.isNotEmpty()) {
+
+                        val app =
+                            getApplication<Application>()
+                                as TaskManagementApp
+
+                        val pendingAttachmentManager =
+                            PendingAttachmentManager(
+                                app.attachmentRepository
+                            )
+
+                        pendingAttachmentManager
+                            .commitPendingAttachments(
+                                context = context,
+                                pendingUris =
+                                    state.pendingAttachmentUris,
+                                taskId = newId
+                            )
+                    }
 
                     // Schedule reminder
                     if (
