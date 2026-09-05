@@ -1,12 +1,19 @@
 package com.uth.taskmanagement.ui.settings
 
+import android.Manifest
 import android.app.AlertDialog
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -17,6 +24,9 @@ import com.uth.taskmanagement.databinding.FragmentSettingsBinding
 import com.uth.taskmanagement.R
 import com.uth.taskmanagement.security.PinSetupFragment
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class SettingsFragment : Fragment() {
 
@@ -31,11 +41,31 @@ class SettingsFragment : Fragment() {
         )
     }
 
-    private val exportLauncher = registerForActivityResult(
+    private val jsonExportLauncher = registerForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
     ) { uri ->
         uri?.let {
-            viewModel.exportTasks(it) { success -> handleResult(success, isExport = true) }
+            viewModel.exportTaskData(it) { result ->
+                handleResult(
+                    result,
+                    successMessage = "Task data exported successfully",
+                    failureAction = "Task data export failed"
+                )
+            }
+        }
+    }
+
+    private val portableExportLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("application/zip")
+    ) { uri ->
+        uri?.let {
+            viewModel.exportPortableBackup(it) { result ->
+                handleResult(
+                    result,
+                    successMessage = "Portable backup exported successfully",
+                    failureAction = "Portable backup export failed"
+                )
+            }
         }
     }
 
@@ -43,6 +73,15 @@ class SettingsFragment : Fragment() {
         ActivityResultContracts.OpenDocument()
     ) { uri ->
         uri?.let { confirmAndRestore(it) }
+    }
+
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        showMessage(
+            if (granted) "Notification permission granted"
+            else "Notification permission denied"
+        )
     }
 
     override fun onCreateView(
@@ -65,15 +104,55 @@ class SettingsFragment : Fragment() {
                 .addToBackStack("pin_setup")
                 .commit()
         }
-        binding.rowExport.setOnClickListener {
-            exportLauncher.launch("tasks_backup_${System.currentTimeMillis()}.json")
+        binding.rowExportJson.setOnClickListener {
+            val timestamp = SimpleDateFormat("yyyyMMdd_HHmm", Locale.US).format(Date())
+            jsonExportLauncher.launch("TaskManagementData_$timestamp.json")
+        }
+        binding.rowPortableBackup.setOnClickListener {
+            val timestamp = SimpleDateFormat("yyyyMMdd_HHmm", Locale.US).format(Date())
+            portableExportLauncher.launch("TaskManagementBackup_$timestamp.zip")
         }
         binding.rowRestore.setOnClickListener {
-            restoreLauncher.launch(arrayOf("application/json"))
+            restoreLauncher.launch(
+                arrayOf("application/zip", "application/json", "text/json", "*/*")
+            )
         }
         binding.rowNotificationPermission.setOnClickListener {
-            showMessage("Notification permission is requested from the main app shell.")
+            handleNotificationPermission()
         }
+    }
+
+    private fun handleNotificationPermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            if (NotificationManagerCompat.from(requireContext()).areNotificationsEnabled()) {
+                showMessage("Notifications are enabled")
+            } else {
+                openNotificationSettings()
+            }
+            return
+        }
+
+        val permission = Manifest.permission.POST_NOTIFICATIONS
+        when {
+            ContextCompat.checkSelfPermission(
+                requireContext(),
+                permission
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                showMessage("Notification permission already granted")
+            }
+            shouldShowRequestPermissionRationale(permission) -> {
+                notificationPermissionLauncher.launch(permission)
+            }
+            else -> openNotificationSettings()
+        }
+    }
+
+    private fun openNotificationSettings() {
+        startActivity(
+            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                putExtra(Settings.EXTRA_APP_PACKAGE, requireContext().packageName)
+            }
+        )
     }
 
     private fun observePinState() {
@@ -119,19 +198,29 @@ class SettingsFragment : Fragment() {
             .setTitle("Restore data")
             .setMessage("Current tasks will be replaced by the selected backup file. Continue?")
             .setPositiveButton("Restore") { _, _ ->
-                viewModel.restoreTasks(uri) { success -> handleResult(success, isExport = false) }
+                viewModel.restoreTasks(uri) { result ->
+                    handleResult(
+                        result,
+                        successMessage = "Backup restored successfully",
+                        failureAction = "Restore failed"
+                    )
+                }
             }
             .setNegativeButton("Cancel", null)
             .show()
     }
 
-    private fun handleResult(success: Boolean, isExport: Boolean) {
-        val message = when {
-            success && isExport -> "Backup exported successfully"
-            success && !isExport -> "Backup restored successfully"
-            !success && isExport -> "Backup export failed"
-            else -> "Restore failed. Please check the JSON file."
-        }
+    private fun handleResult(
+        result: Result<Unit>,
+        successMessage: String,
+        failureAction: String
+    ) {
+        val message = result.fold(
+            onSuccess = { successMessage },
+            onFailure = { error ->
+                "$failureAction: ${error.message ?: "Unknown error"}"
+            }
+        )
         showMessage(message)
     }
 

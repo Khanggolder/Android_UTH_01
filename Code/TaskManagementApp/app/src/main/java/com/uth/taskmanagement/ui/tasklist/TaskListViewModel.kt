@@ -13,6 +13,7 @@ import com.uth.taskmanagement.utils.TaskStatusFilter
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -48,6 +49,8 @@ class TaskListViewModel(
             dueDateFilter = dueDate,
             sortOption = sort
         )
+    }.catch { throwable ->
+        emit(TaskListStateMapper.mapError(throwable))
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -130,6 +133,17 @@ class TaskListViewModel(
                 taskId = taskId,
                 completed = completed
             )
+            if (!completed) {
+                repository.getTaskById(taskId)?.let { task ->
+                    val scheduledTime = RecurrenceScheduler.scheduleReminderForTask(
+                        context = context,
+                        task = task
+                    )
+                    if (scheduledTime != null && scheduledTime != task.reminderTime) {
+                        repository.updateReminderTime(taskId, scheduledTime)
+                    }
+                }
+            }
         }
     }
 

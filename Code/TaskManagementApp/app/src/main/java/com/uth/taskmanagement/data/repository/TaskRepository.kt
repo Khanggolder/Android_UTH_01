@@ -7,7 +7,8 @@ import com.uth.taskmanagement.data.model.TaskStatus
 import kotlinx.coroutines.flow.Flow
 
 class TaskRepository(
-    private val taskDao: TaskDao
+    private val taskDao: TaskDao,
+    private val attachmentRepository: AttachmentRepository? = null
 ) {
 
     fun observeAllTasks(): Flow<List<TaskEntity>> =
@@ -45,14 +46,21 @@ class TaskRepository(
     }
 
     suspend fun deleteTask(task: TaskEntity) =
-        taskDao.deleteTask(task)
+        deleteTaskById(task.id)
 
     suspend fun deleteTaskById(taskId: Long) {
         require(taskId > 0) {
             "Task ID must be greater than 0 when deleting."
         }
 
-        taskDao.deleteTaskById(taskId)
+        val stagedDeletion = attachmentRepository?.stageOwnedFilesForTask(taskId)
+        try {
+            taskDao.deleteTaskById(taskId)
+            stagedDeletion?.let { attachmentRepository?.commitFileDeletion(it) }
+        } catch (error: Exception) {
+            stagedDeletion?.let { attachmentRepository?.rollbackFileDeletion(it) }
+            throw error
+        }
     }
 
     suspend fun setTaskCompleted(
@@ -106,8 +114,7 @@ class TaskRepository(
         taskDao.getActiveReminderTasks()
 
     suspend fun replaceAllTasks(tasks: List<TaskEntity>) {
-        taskDao.deleteAllTasks()
-        taskDao.insertTasks(tasks)
+        taskDao.replaceAllTasks(tasks)
     }
 
     suspend fun updateReminderTime(taskId: Long, reminderTime: Long) =

@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="background_light">#0D1117</color>
     <color name="surface">#161B22</color>
@@ -17,4 +16,8 @@
     <color name="priority_medium">#FFD166</color>
     <color name="priority_low">#3DDC97</color>
     <color name="nav_inactive">#6B7280</color>
+    <color name="timeline_pending">#F59E0B</color>
+    <color name="timeline_in_progress">#2196F3</color>
+    <color name="timeline_completed">#4CAF50</color>
+    <color name="timeline_overdue">#E53935</color>
 </resources>

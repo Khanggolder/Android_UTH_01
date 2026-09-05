@@ -17,6 +17,7 @@ class BootReceiver : BroadcastReceiver() {
         val action = intent.action ?: return
         val supported = action == Intent.ACTION_BOOT_COMPLETED
                 || action == Intent.ACTION_TIME_CHANGED
+                || action == Intent.ACTION_DATE_CHANGED
                 || action == "android.intent.action.TIMEZONE_CHANGED"
 
         if (!supported) return
@@ -36,14 +37,11 @@ class BootReceiver : BroadcastReceiver() {
                     val reminderTime = task.reminderTime ?: continue
 
                     // Nếu thời gian nhắc đã qua, tính lại theo chu kỳ
-                    val nextTime = if (reminderTime > now) {
-                        reminderTime
-                    } else {
-                        RecurrenceScheduler.calculateNextReminderTime(
-                            reminderTime,
-                            task.recurrenceType
-                        ) ?: continue
-                    }
+                    val nextTime = RecurrenceScheduler.calculateNextFutureReminderTime(
+                        reminderTime = reminderTime,
+                        recurrenceType = task.recurrenceType,
+                        currentTime = now
+                    ) ?: continue
 
                     // Cập nhật DB nếu thời gian đã thay đổi
                     if (nextTime != reminderTime) {

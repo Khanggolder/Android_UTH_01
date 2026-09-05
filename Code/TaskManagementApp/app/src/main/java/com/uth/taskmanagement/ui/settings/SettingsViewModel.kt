@@ -41,19 +41,21 @@ class SettingsViewModel(
         }
     }
 
-    fun exportTasks(uri: Uri, onResult: (Boolean) -> Unit) {
+    fun exportTaskData(uri: Uri, onResult: (Result<Unit>) -> Unit) {
         viewModelScope.launch {
-            backupManager.exportTasks(uri)
-                .onSuccess { onResult(true) }
-                .onFailure { onResult(false) }
+            onResult(backupManager.exportTaskData(uri))
         }
     }
 
-    fun restoreTasks(uri: Uri, onResult: (Boolean) -> Unit) {
+    fun exportPortableBackup(uri: Uri, onResult: (Result<Unit>) -> Unit) {
         viewModelScope.launch {
-            backupManager.restoreTasks(uri)
-                .onSuccess { onResult(true) }
-                .onFailure { onResult(false) }
+            onResult(backupManager.exportTasks(uri))
+        }
+    }
+
+    fun restoreTasks(uri: Uri, onResult: (Result<Unit>) -> Unit) {
+        viewModelScope.launch {
+            onResult(backupManager.restoreTasks(uri))
         }
     }
 }
