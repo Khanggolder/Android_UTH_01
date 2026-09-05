@@ -74,6 +74,17 @@ class TaskListFragment : Fragment() {
             }
         )
         binding.recyclerViewTasks.layoutManager = LinearLayoutManager(requireContext())
+
+        /*
+         * Disable RecyclerView change animations.
+         *
+         * On some emulator/API combinations, returning to this Fragment while
+         * ListAdapter is dispatching a diff can leave old item views visible for
+         * a frame (or longer), which looks like duplicated/overlapping task cards.
+         * The task list does not need change animations, so disabling the animator
+         * makes the list deterministic when the Fragment view is recreated.
+         */
+        binding.recyclerViewTasks.itemAnimator = null
         binding.recyclerViewTasks.adapter = adapter
     }
 
@@ -247,20 +258,31 @@ class TaskListFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
-                    binding.recyclerViewTasks.visibility = View.GONE
-                    binding.tvEmpty.visibility = View.GONE
-
                     when (state) {
                         is TaskListUiState.Loading -> {
-                            // Optionally show progress bar
+                            binding.recyclerViewTasks.visibility = View.GONE
+                            binding.tvEmpty.visibility = View.GONE
                         }
 
                         is TaskListUiState.Success -> {
+                            binding.tvEmpty.visibility = View.GONE
                             binding.recyclerViewTasks.visibility = View.VISIBLE
-                            adapter.submitList(state.tasks, state.overdueTaskIds)
+
+                            /*
+                             * Give ListAdapter its own immutable snapshot.
+                             * This prevents a mutable/shared list instance from
+                             * being reused while the Fragment is returning from
+                             * the back stack.
+                             */
+                            adapter.submitList(
+                                state.tasks.toList(),
+                                state.overdueTaskIds.toSet()
+                            )
                         }
 
                         is TaskListUiState.Empty -> {
+                            adapter.submitList(emptyList())
+                            binding.recyclerViewTasks.visibility = View.GONE
                             binding.tvEmpty.visibility = View.VISIBLE
                             binding.tvEmptyTitle.text = if (state.isBecauseOfFilter) {
                                 "No tasks match the selected filters"
@@ -270,6 +292,8 @@ class TaskListFragment : Fragment() {
                         }
 
                         is TaskListUiState.Error -> {
+                            adapter.submitList(emptyList())
+                            binding.recyclerViewTasks.visibility = View.GONE
                             binding.tvEmpty.visibility = View.VISIBLE
                             binding.tvEmptyTitle.text = state.message
                         }
@@ -280,6 +304,12 @@ class TaskListFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        /*
+         * Detach RecyclerView from the adapter before the Fragment view is
+         * destroyed. This prevents old ViewHolders from remaining attached to
+         * a dead view hierarchy when Android restores this Fragment from Back.
+         */
+        binding.recyclerViewTasks.adapter = null
         super.onDestroyView()
         _binding = null
     }

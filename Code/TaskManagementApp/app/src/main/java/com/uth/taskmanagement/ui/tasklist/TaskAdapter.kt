@@ -19,6 +19,15 @@ class TaskAdapter(
     private val onCompletedChanged: (TaskEntity, Boolean) -> Unit = { _, _ -> }
 ) : ListAdapter<TaskEntity, TaskAdapter.TaskViewHolder>(DIFF_CALLBACK) {
 
+    init {
+        /*
+         * TaskEntity IDs come from the database and are stable.
+         * Let RecyclerView use them as item identities so a ViewHolder from an
+         * old layout pass is not matched to the wrong task after navigation.
+         */
+        setHasStableIds(true)
+    }
+
     companion object {
         private val DIFF_CALLBACK = object : DiffUtil.ItemCallback<TaskEntity>() {
             override fun areItemsTheSame(old: TaskEntity, new: TaskEntity) = old.id == new.id
@@ -42,6 +51,8 @@ class TaskAdapter(
         val tvDueDate: TextView = itemView.findViewById(R.id.tvDueDate)
         val cbCompleted: CheckBox = itemView.findViewById(R.id.cbCompleted)
     }
+
+    override fun getItemId(position: Int): Long = getItem(position).id
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TaskViewHolder {
         val view = LayoutInflater.from(parent.context)
