@@ -2,9 +2,25 @@ package com.uth.taskmanagement.data.model
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "tasks")
+@Entity(
+    tableName = "tasks",
+    foreignKeys = [
+        ForeignKey(
+            entity = UserEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["assigneeUserId"],
+            onUpdate = ForeignKey.CASCADE,
+            onDelete = ForeignKey.RESTRICT
+        )
+    ],
+    indices = [
+        Index(value = ["assigneeUserId"])
+    ]
+)
 data class TaskEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,

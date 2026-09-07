@@ -14,7 +14,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [TaskEntity::class, UserEntity::class, TaskAttachmentEntity::class],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -51,7 +51,8 @@ abstract class TaskDatabase : RoomDatabase() {
                         TaskDatabase::class.java,
                         "task_management.db"
                     )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addCallback(DEFAULT_USER_CALLBACK)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .build()
                     .also { database ->
                         INSTANCE = database
@@ -173,6 +174,98 @@ abstract class TaskDatabase : RoomDatabase() {
                         "ADD COLUMN localRelativePath TEXT DEFAULT NULL"
                 )
             }
+        }
+
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                insertDefaultUser(db)
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS tasks_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        title TEXT NOT NULL,
+                        description TEXT NOT NULL,
+                        startDateTime INTEGER NOT NULL,
+                        dueDateTime INTEGER NOT NULL,
+                        priority TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        isCompleted INTEGER NOT NULL,
+                        reminderTime INTEGER,
+                        recurrenceType TEXT NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        createdByUserId TEXT NOT NULL DEFAULT 'local-user',
+                        assigneeUserId TEXT NOT NULL DEFAULT 'local-user',
+                        FOREIGN KEY(assigneeUserId) REFERENCES users(id)
+                            ON UPDATE CASCADE
+                            ON DELETE RESTRICT
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO tasks_new (
+                        id, title, description, startDateTime, dueDateTime,
+                        priority, status, isCompleted, reminderTime,
+                        recurrenceType, createdAt, updatedAt,
+                        createdByUserId, assigneeUserId
+                    )
+                    SELECT
+                        id, title, description, startDateTime, dueDateTime,
+                        priority, status, isCompleted, reminderTime,
+                        recurrenceType, createdAt, updatedAt,
+                        COALESCE(NULLIF(createdByUserId, ''), 'local-user'),
+                        CASE
+                            WHEN assigneeUserId IN (SELECT id FROM users)
+                                THEN assigneeUserId
+                            ELSE 'local-user'
+                        END
+                    FROM tasks
+                    """.trimIndent()
+                )
+                db.execSQL("DROP TABLE IF EXISTS task_attachments_backup")
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS task_attachments_backup AS
+                    SELECT * FROM task_attachments
+                    """.trimIndent()
+                )
+                db.execSQL("DROP TABLE tasks")
+                db.execSQL("ALTER TABLE tasks_new RENAME TO tasks")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_tasks_assigneeUserId ON tasks(assigneeUserId)"
+                )
+                db.execSQL("DELETE FROM task_attachments")
+                db.execSQL(
+                    """
+                    INSERT OR REPLACE INTO task_attachments (
+                        id, taskId, fileName, uri, mimeType, sizeBytes,
+                        createdAt, isAppOwned, localRelativePath
+                    )
+                    SELECT
+                        id, taskId, fileName, uri, mimeType, sizeBytes,
+                        createdAt, isAppOwned, localRelativePath
+                    FROM task_attachments_backup
+                    WHERE taskId IN (SELECT id FROM tasks)
+                    """.trimIndent()
+                )
+                db.execSQL("DROP TABLE task_attachments_backup")
+            }
+        }
+
+        private val DEFAULT_USER_CALLBACK = object : Callback() {
+            override fun onCreate(db: SupportSQLiteDatabase) {
+                insertDefaultUser(db)
+            }
+        }
+
+        private fun insertDefaultUser(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                INSERT OR IGNORE INTO users (id, name, email)
+                VALUES ('local-user', 'Me', '')
+                """.trimIndent()
+            )
         }
     }
 }

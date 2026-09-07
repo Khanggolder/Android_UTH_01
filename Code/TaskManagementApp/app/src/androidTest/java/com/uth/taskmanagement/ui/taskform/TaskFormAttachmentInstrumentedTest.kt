@@ -8,6 +8,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.uth.taskmanagement.attachment.AttachmentStorage
 import com.uth.taskmanagement.data.local.TaskDatabase
+import com.uth.taskmanagement.data.model.UserEntity
 import com.uth.taskmanagement.data.repository.AttachmentRepository
 import com.uth.taskmanagement.data.repository.TaskRepository
 import kotlinx.coroutines.flow.first
@@ -38,6 +39,9 @@ class TaskFormAttachmentInstrumentedTest {
         storage = AttachmentStorage(context)
         attachmentRepository = AttachmentRepository(database.attachmentDao(), storage)
         taskRepository = TaskRepository(database.taskDao(), attachmentRepository)
+        runBlocking {
+            database.userDao().insert(UserEntity.createDefault())
+        }
         testDirectory = File(context.cacheDir, "task-form-test-${UUID.randomUUID()}").apply {
             assertTrue(mkdirs())
         }

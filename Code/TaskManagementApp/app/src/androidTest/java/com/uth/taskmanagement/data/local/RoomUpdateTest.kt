@@ -7,6 +7,7 @@ import com.uth.taskmanagement.data.model.RecurrenceType
 import com.uth.taskmanagement.data.model.TaskEntity
 import com.uth.taskmanagement.data.model.TaskPriority
 import com.uth.taskmanagement.data.model.TaskStatus
+import com.uth.taskmanagement.data.model.UserEntity
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -35,6 +36,9 @@ class RoomUpdateTest {
             .build()
 
         taskDao = database.taskDao()
+        runBlocking {
+            database.userDao().insert(UserEntity.createDefault())
+        }
     }
 
     @After

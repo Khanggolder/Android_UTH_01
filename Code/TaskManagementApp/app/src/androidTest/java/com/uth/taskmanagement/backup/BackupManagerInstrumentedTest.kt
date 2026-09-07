@@ -14,6 +14,7 @@ import com.uth.taskmanagement.data.model.TaskAttachmentEntity
 import com.uth.taskmanagement.data.model.TaskEntity
 import com.uth.taskmanagement.data.model.TaskPriority
 import com.uth.taskmanagement.data.model.TaskStatus
+import com.uth.taskmanagement.data.model.UserEntity
 import com.uth.taskmanagement.data.repository.AttachmentRepository
 import com.uth.taskmanagement.data.repository.TaskRepository
 import com.uth.taskmanagement.recurrence.RecurrenceScheduler
@@ -53,6 +54,9 @@ class BackupManagerInstrumentedTest {
         storage = AttachmentStorage(context)
         attachmentRepository = AttachmentRepository(database.attachmentDao(), storage)
         taskRepository = TaskRepository(database.taskDao(), attachmentRepository)
+        runBlocking {
+            database.userDao().insert(UserEntity.createDefault())
+        }
         scheduler = RecordingReminderScheduler()
         backupManager = BackupManager(
             taskRepository,

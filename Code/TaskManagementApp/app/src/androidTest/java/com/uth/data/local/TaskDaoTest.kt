@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.uth.taskmanagement.data.model.TaskEntity
 import com.uth.taskmanagement.data.model.TaskStatus
+import com.uth.taskmanagement.data.model.UserEntity
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -36,6 +37,9 @@ class TaskDaoTest {
             .build()
 
         taskDao = database.taskDao()
+        runBlocking {
+            database.userDao().insert(UserEntity.createDefault())
+        }
     }
 
     @After

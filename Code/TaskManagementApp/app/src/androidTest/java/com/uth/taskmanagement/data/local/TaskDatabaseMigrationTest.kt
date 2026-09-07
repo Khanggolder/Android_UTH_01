@@ -285,6 +285,83 @@ class TaskDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migration4To5_preservesTaskAndAttachmentAndBackfillsOwner() {
+        helper.createDatabase(TEST_DATABASE, 4).apply {
+            insertVersionFourTask(
+                id = 50L,
+                title = "Version four task",
+                assigneeUserId = "missing-user"
+            )
+            execSQL(
+                """
+                INSERT INTO task_attachments (
+                    id, taskId, fileName, uri, mimeType, sizeBytes,
+                    createdAt, isAppOwned, localRelativePath
+                ) VALUES (
+                    60, 50, 'note.txt', 'content://legacy/note',
+                    'text/plain', 128, 1000, 0, NULL
+                )
+                """.trimIndent()
+            )
+            close()
+        }
+
+        database = helper.runMigrationsAndValidate(
+            TEST_DATABASE,
+            5,
+            true,
+            TaskDatabase.MIGRATION_4_5
+        )
+
+        database!!.query(
+            "SELECT title, assigneeUserId FROM tasks WHERE id = 50"
+        ).use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("Version four task", cursor.getString(0))
+            assertEquals("local-user", cursor.getString(1))
+        }
+
+        database!!.query(
+            "SELECT fileName FROM task_attachments WHERE taskId = 50"
+        ).use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("note.txt", cursor.getString(0))
+        }
+    }
+
+    @Test
+    fun migration1To5_preservesTaskAcrossEntireMigrationChain() {
+        helper.createDatabase(TEST_DATABASE, 1).apply {
+            insertVersionOneTask(
+                id = 70L,
+                title = "Old task",
+                createdAt = 100L,
+                dueDateTime = 200L
+            )
+            close()
+        }
+
+        database = helper.runMigrationsAndValidate(
+            TEST_DATABASE,
+            5,
+            true,
+            TaskDatabase.MIGRATION_1_2,
+            TaskDatabase.MIGRATION_2_3,
+            TaskDatabase.MIGRATION_3_4,
+            TaskDatabase.MIGRATION_4_5
+        )
+
+        database!!.query(
+            "SELECT title, startDateTime, assigneeUserId FROM tasks WHERE id = 70"
+        ).use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("Old task", cursor.getString(0))
+            assertEquals(100L, cursor.getLong(1))
+            assertEquals("local-user", cursor.getString(2))
+        }
+    }
+
     private fun SupportSQLiteDatabase.insertVersionOneTask(
         id: Long,
         title: String,
@@ -340,6 +417,29 @@ class TaskDatabaseMigrationTest {
             )
             """.trimIndent(),
             arrayOf<Any>(id, title, createdAt, dueDateTime, createdAt, createdAt)
+        )
+    }
+
+    private fun SupportSQLiteDatabase.insertVersionFourTask(
+        id: Long,
+        title: String,
+        assigneeUserId: String,
+        createdAt: Long = 1000L,
+        dueDateTime: Long = 9999999999L
+    ) {
+        execSQL(
+            """
+            INSERT INTO tasks (
+                id, title, description, startDateTime, dueDateTime,
+                priority, status, isCompleted, reminderTime,
+                recurrenceType, createdAt, updatedAt,
+                createdByUserId, assigneeUserId
+            ) VALUES (
+                ?, ?, '', ?, ?, 'MEDIUM', 'PENDING', 0, NULL,
+                'NONE', ?, ?, 'local-user', ?
+            )
+            """.trimIndent(),
+            arrayOf<Any>(id, title, createdAt, dueDateTime, createdAt, createdAt, assigneeUserId)
         )
     }
 
