@@ -7,6 +7,7 @@ import com.uth.taskmanagement.data.model.RecurrenceType
 import com.uth.taskmanagement.data.model.TaskEntity
 import com.uth.taskmanagement.data.model.TaskPriority
 import com.uth.taskmanagement.data.model.TaskStatus
+import com.uth.taskmanagement.data.model.UserEntity
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -36,6 +37,9 @@ class RoomDeleteTest {
             .build()
 
         taskDao = database.taskDao()
+        runBlocking {
+            database.userDao().insert(UserEntity.createDefault())
+        }
     }
 
     @After
