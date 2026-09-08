@@ -9,6 +9,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.uth.taskmanagement.R
 import com.uth.taskmanagement.databinding.FragmentCalendarBinding
@@ -16,6 +17,7 @@ import com.uth.taskmanagement.ui.taskform.TaskFormFragment
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.ZoneId
 import java.util.Date
 import java.util.Locale
@@ -31,6 +33,7 @@ class CalendarFragment : Fragment() {
     }
 
     private lateinit var adapter: TaskCalendarAdapter
+    private lateinit var gridAdapter: CalendarGridAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -42,7 +45,7 @@ class CalendarFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setupRecyclerView()
-        setupCalendarView()
+        setupCalendarGrid()
         setupFab()
         observeViewModel()
     }
@@ -61,10 +64,17 @@ class CalendarFragment : Fragment() {
         }
     }
 
-    private fun setupCalendarView() {
-        binding.calendarView.setOnDateChangeListener { _, year, month, dayOfMonth ->
-            viewModel.onDateSelected(LocalDate.of(year, month + 1, dayOfMonth))
+    private fun setupCalendarGrid() {
+        gridAdapter = CalendarGridAdapter { date ->
+            viewModel.onDateSelected(date)
         }
+        binding.rvCalendarGrid.apply {
+            layoutManager = GridLayoutManager(requireContext(), 7)
+            adapter = gridAdapter
+        }
+
+        binding.btnPrevMonth.setOnClickListener { viewModel.goToPreviousMonth() }
+        binding.btnNextMonth.setOnClickListener { viewModel.goToNextMonth() }
     }
 
     private fun setupFab() {
@@ -79,6 +89,16 @@ class CalendarFragment : Fragment() {
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    viewModel.displayedMonth.collect { month ->
+                        binding.tvMonthYear.text = formatMonthYear(month)
+                    }
+                }
+                launch {
+                    viewModel.monthDays.collect { days ->
+                        gridAdapter.submitDays(days, viewModel.displayedMonth.value)
+                    }
+                }
                 launch {
                     viewModel.selectedDate.collect { date ->
                         binding.tvSelectedDate.text = formatDateLabel(date)
@@ -101,6 +121,10 @@ class CalendarFragment : Fragment() {
         }
     }
 
+    private fun formatMonthYear(month: YearMonth): String {
+        val formatter = java.time.format.DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH)
+        return month.format(formatter).uppercase(Locale.ENGLISH)
+    }
     private fun formatDateLabel(date: LocalDate): String {
         val today = LocalDate.now()
         return when (date) {
