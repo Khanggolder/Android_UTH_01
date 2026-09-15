@@ -696,6 +696,17 @@ attachmentAdapter =
                         state.errorMessage
                     )
 
+                    state.duplicateAttachmentFileName
+                        ?.let { fileName ->
+
+                            // Reset trước để StateFlow không làm dialog hiện lại.
+                            viewModel.clearDuplicateAttachmentWarning()
+
+                            showDuplicateAttachmentDialog(
+                                fileName
+                            )
+                        }
+
                     updateLoadingUI(
                         state.isLoading
                     )
@@ -919,6 +930,30 @@ attachmentAdapter =
                 "Save Task"
             }
     }
+    // ─────────────────────────────────────────────────────────────
+    // Duplicate Attachment
+    // ─────────────────────────────────────────────────────────────
+
+    private fun showDuplicateAttachmentDialog(
+        fileName: String
+    ) {
+
+        MaterialAlertDialogBuilder(
+            requireContext()
+        )
+            .setTitle(
+                "File already exists"
+            )
+            .setMessage(
+                "\"$fileName\" has already been attached. Please choose another file."
+            )
+            .setPositiveButton(
+                "OK",
+                null
+            )
+            .show()
+    }
+
     // ─────────────────────────────────────────────────────────────
     // Remove Attachment
     // ─────────────────────────────────────────────────────────────

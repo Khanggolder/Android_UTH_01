@@ -39,6 +39,9 @@ data class TaskFormState(
     val attachments: List<TaskAttachmentEntity> = emptyList(),
     val pendingAttachmentUris: List<Uri> = emptyList(),
 
+    // Tên file bị trùng. Fragment dùng giá trị này để hiện dialog một lần.
+    val duplicateAttachmentFileName: String? = null,
+
     val isLoading: Boolean = false,
     val isSaved: Boolean = false,
     val errorMessage: String? = null
@@ -128,31 +131,66 @@ class TaskFormViewModel(
 
         viewModelScope.launch {
 
-        val context =
-            getApplication<Application>()
-                .applicationContext
+            val context =
+                getApplication<Application>()
+                    .applicationContext
 
-        val state = _formState.value
+            try {
 
-        try {
+                val taskId =
+                    _formState.value.taskId
 
-            val attachment = withContext(Dispatchers.IO) {
-                AttachmentFileHelper.buildAttachmentEntity(
-                    context = context,
-                    uri = uri,
-                    taskId =
-                        if (state.taskId > 0L) {
-                            state.taskId
-                        } else {
-                            0L
-                        }
-                )
-            }
+                val attachment =
+                    withContext(Dispatchers.IO) {
+                        AttachmentFileHelper.buildAttachmentEntity(
+                            context = context,
+                            uri = uri,
+                            taskId =
+                                if (taskId > 0L) {
+                                    taskId
+                                } else {
+                                    0L
+                                }
+                        )
+                    }
 
-            // EDIT TASK: đã có taskId -> lưu DB ngay
-            if (state.taskId > 0L) {
+                /*
+                 * Chặn attachment bị trùng trước khi thêm vào UI,
+                 * pendingAttachmentUris hoặc database.
+                 *
+                 * - Cùng URI: chắc chắn là cùng file đã chọn trước đó.
+                 * - Cùng tên + cùng kích thước: bắt thêm trường hợp document
+                 *   provider trả về URI khác cho cùng một file.
+                 */
+                val currentState =
+                    _formState.value
 
-                viewModelScope.launch {
+                val isDuplicate =
+                    currentState.attachments.any { existing ->
+                        existing.uri == attachment.uri ||
+                            (
+                                existing.fileName.equals(
+                                    attachment.fileName,
+                                    ignoreCase = true
+                                ) &&
+                                    existing.sizeBytes == attachment.sizeBytes
+                            )
+                    }
+
+                if (isDuplicate) {
+
+                    _formState.value =
+                        currentState.copy(
+                            duplicateAttachmentFileName =
+                                attachment.fileName,
+                            errorMessage = null
+                        )
+
+                    return@launch
+                }
+
+                // EDIT TASK: đã có taskId -> lưu DB ngay
+                if (currentState.taskId > 0L) {
 
                     try {
 
@@ -161,11 +199,15 @@ class TaskFormViewModel(
                                 attachment
                             )
 
+                        val latestState =
+                            _formState.value
+
                         _formState.value =
-                            _formState.value.copy(
+                            latestState.copy(
                                 attachments =
-                                    _formState.value.attachments +
+                                    latestState.attachments +
                                         attachment.copy(id = newId),
+                                duplicateAttachmentFileName = null,
                                 errorMessage = null
                             )
 
@@ -177,33 +219,51 @@ class TaskFormViewModel(
                                     "Failed to add attachment: ${e.message}"
                             )
                     }
+
+                } else {
+
+                    // CREATE TASK: chỉ giữ tạm, lưu khi Save
+                    val latestState =
+                        _formState.value
+
+                    _formState.value =
+                        latestState.copy(
+                            attachments =
+                                latestState.attachments + attachment,
+
+                            pendingAttachmentUris =
+                                latestState.pendingAttachmentUris + uri,
+
+                            duplicateAttachmentFileName = null,
+                            errorMessage = null
+                        )
                 }
 
-            } else {
+            } catch (e: Exception) {
 
-                // CREATE TASK: chỉ giữ tạm, Task 23 sẽ lưu khi Save
                 _formState.value =
                     _formState.value.copy(
-                        attachments =
-                            _formState.value.attachments + attachment,
-
-                        pendingAttachmentUris =
-                            _formState.value.pendingAttachmentUris + uri,
-
-                        errorMessage = null
+                        errorMessage =
+                            "Failed to add attachment: ${e.message}"
                     )
             }
+        }
+    }
 
-        } catch (e: Exception) {
+    fun clearDuplicateAttachmentWarning() {
+
+        val state =
+            _formState.value
+
+        if (state.duplicateAttachmentFileName != null) {
 
             _formState.value =
                 state.copy(
-                    errorMessage =
-                        "Failed to add attachment: ${e.message}"
+                    duplicateAttachmentFileName = null
                 )
         }
-        }
     }
+
     fun removeAttachment(
     attachment: TaskAttachmentEntity
 ) {
