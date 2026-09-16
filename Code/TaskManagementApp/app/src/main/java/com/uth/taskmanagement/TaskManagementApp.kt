@@ -32,7 +32,7 @@ class TaskManagementApp : Application() {
     }
 
     val taskRepository: TaskRepository by lazy {
-        TaskRepository(database.taskDao(), attachmentRepository)
+        TaskRepository(database.taskDao(), attachmentRepository, database)
     }
 
     val userRepository: UserRepository by lazy {

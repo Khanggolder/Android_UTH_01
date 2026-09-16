@@ -22,6 +22,9 @@ interface AttachmentDao {
     @Query("DELETE FROM task_attachments WHERE id = :id")
     suspend fun deleteById(id: Long)
 
+    @Query("DELETE FROM task_attachments WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: Collection<Long>)
+
     /** deleteAttachmentsByTaskId — xóa toàn bộ attachment của một task. */
     @Query("DELETE FROM task_attachments WHERE taskId = :taskId")
     suspend fun deleteByTaskId(taskId: Long)

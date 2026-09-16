@@ -16,14 +16,21 @@ class PendingAttachmentManager(
         pendingUris: List<Uri>,
         taskId: Long
     ): List<Long> = withContext(Dispatchers.IO) {
-        if (pendingUris.isEmpty()) return@withContext emptyList()
-
-        val entities = pendingUris.map { uri ->
-            context.contentResolver.openInputStream(uri)?.use { it.read() }
-                ?: throw FileNotFoundException("Pending attachment is no longer available")
-            AttachmentFileHelper.buildAttachmentEntity(context, uri, taskId)
-        }
-
+        val entities = preparePendingAttachments(context, pendingUris, taskId)
         attachmentRepository.addAttachments(entities)
     }
+
+    suspend fun preparePendingAttachments(
+        context: Context,
+        pendingUris: List<Uri>,
+        taskId: Long
+    ): List<com.uth.taskmanagement.data.model.TaskAttachmentEntity> =
+        withContext(Dispatchers.IO) {
+            require(taskId > 0L) { "Attachment task ID must be greater than 0" }
+            pendingUris.map { uri ->
+                context.contentResolver.openInputStream(uri)?.use { it.read() }
+                    ?: throw FileNotFoundException("Pending attachment is no longer available")
+                AttachmentFileHelper.buildAttachmentEntity(context, uri, taskId)
+            }
+        }
 }

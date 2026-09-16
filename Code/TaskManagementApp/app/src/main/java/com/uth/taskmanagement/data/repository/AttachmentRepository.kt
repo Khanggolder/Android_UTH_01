@@ -35,6 +35,10 @@ class AttachmentRepository(
         }
     }
 
+    suspend fun deleteAttachmentRecords(ids: Collection<Long>) {
+        if (ids.isNotEmpty()) attachmentDao.deleteByIds(ids)
+    }
+
     suspend fun deleteAllForTask(taskId: Long) {
         val stagedDeletion = stageOwnedFilesForTask(taskId)
         try {

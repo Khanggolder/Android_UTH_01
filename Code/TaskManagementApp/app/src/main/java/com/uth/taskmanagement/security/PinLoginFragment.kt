@@ -22,10 +22,10 @@ class PinLoginFragment : Fragment() {
             backupManager = app.backupManager
         )
     }
+    private val attemptViewModel: PinLoginViewModel by viewModels()
 
     private lateinit var keypadController: PinKeypadController
 
-    private var remainingAttempts = MAX_ATTEMPTS
     private var lockoutTimer: CountDownTimer? = null
 
     override fun onCreateView(
@@ -38,6 +38,7 @@ class PinLoginFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setupKeypad()
+        restoreAttemptState()
     }
 
     private fun setupKeypad() {
@@ -72,37 +73,56 @@ class PinLoginFragment : Fragment() {
     }
 
     private fun onLoginFailed() {
-        remainingAttempts--
+        val attemptState = attemptViewModel.registerFailedAttempt()
         _binding?.let { safeBinding ->
             safeBinding.root.postDelayed({
                 keypadController.reset()
             }, 150)
         }
 
-        if (remainingAttempts <= 0) {
+        if (attemptState.lockoutEndsAt != null) {
             startLockout()
         } else {
-            showError("Incorrect PIN, $remainingAttempts attempts left")
+            showError("Incorrect PIN, ${attemptState.remainingAttempts} attempts left")
         }
     }
 
+    private fun restoreAttemptState() {
+        attemptViewModel.clearExpiredLockout()
+        if (attemptViewModel.isLockedOut()) {
+            startLockout()
+        } else if (attemptViewModel.state.remainingAttempts < PinLoginViewModel.MAX_ATTEMPTS) {
+            showError(
+                "Incorrect PIN, ${attemptViewModel.state.remainingAttempts} attempts left"
+            )
+        }
+    }
 
     private fun startLockout() {
         setKeypadEnabled(false)
 
         lockoutTimer?.cancel()
-        lockoutTimer = object : CountDownTimer(LOCKOUT_DURATION_MS, 1000) {
+        val remainingMillis = attemptViewModel.remainingLockoutMillis()
+        if (remainingMillis <= 0L) {
+            finishLockout()
+            return
+        }
+        lockoutTimer = object : CountDownTimer(remainingMillis, 1000) {
             override fun onTick(millisUntilFinished: Long) {
                 val secondsLeft = millisUntilFinished / 1000
                 showError("Too many incorrect attempts. Try again in ${secondsLeft}s")
             }
 
             override fun onFinish() {
-                remainingAttempts = MAX_ATTEMPTS
-                setKeypadEnabled(true)
-                binding.tvError.visibility = View.INVISIBLE
+                attemptViewModel.clearExpiredLockout()
+                finishLockout()
             }
         }.start()
+    }
+
+    private fun finishLockout() {
+        setKeypadEnabled(true)
+        binding.tvError.visibility = View.INVISIBLE
     }
 
     private fun setKeypadEnabled(enabled: Boolean) {
@@ -123,10 +143,5 @@ class PinLoginFragment : Fragment() {
         super.onDestroyView()
         lockoutTimer?.cancel()
         _binding = null
-    }
-
-    companion object {
-        private const val MAX_ATTEMPTS = 5
-        private const val LOCKOUT_DURATION_MS = 30_000L
     }
 }
