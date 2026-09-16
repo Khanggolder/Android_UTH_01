@@ -127,7 +127,7 @@ interface TaskDao {
     )
     suspend fun updateReminderTime(
         taskId: Long,
-        reminderTime: Long,
+        reminderTime: Long?,
         updatedAt: Long = System.currentTimeMillis()
     )
 }

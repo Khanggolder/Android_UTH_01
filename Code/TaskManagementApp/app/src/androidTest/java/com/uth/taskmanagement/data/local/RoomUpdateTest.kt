@@ -120,4 +120,21 @@ class RoomUpdateTest {
         // Task thứ hai không bị thay đổi
         assertEquals(secondBeforeUpdate, secondAfterUpdate)
     }
+
+    @Test
+    fun clearReminderTime_marksOneTimeReminderInactive() = runBlocking {
+        val taskId = taskDao.insertTask(
+            TaskEntity(
+                title = "One-time reminder",
+                dueDateTime = System.currentTimeMillis() + 60_000L,
+                reminderTime = System.currentTimeMillis() + 30_000L,
+                recurrenceType = RecurrenceType.NONE
+            )
+        )
+
+        taskDao.updateReminderTime(taskId, null)
+
+        assertEquals(null, taskDao.getTaskById(taskId)?.reminderTime)
+        assertTrue(taskDao.getActiveReminderTasks().none { it.id == taskId })
+    }
 }

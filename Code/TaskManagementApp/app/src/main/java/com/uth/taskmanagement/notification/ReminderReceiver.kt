@@ -46,8 +46,10 @@ class ReminderReceiver : BroadcastReceiver() {
                     content = task.description.ifEmpty { "It is time to work on this task!" }
                 )
 
-                // Chỉ reschedule nếu có chu kỳ lặp
-                if (task.recurrenceType == RecurrenceType.NONE) return@launch
+                if (task.recurrenceType == RecurrenceType.NONE) {
+                    repository.updateReminderTime(taskId, null)
+                    return@launch
+                }
 
                 // Tính thời gian nhắc tiếp theo
                 val nextTime = RecurrenceScheduler.calculateNextFutureReminderTime(

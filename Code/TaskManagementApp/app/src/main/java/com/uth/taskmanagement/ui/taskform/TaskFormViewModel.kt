@@ -38,6 +38,9 @@ data class TaskFormState(
     val recurrenceType: RecurrenceType = RecurrenceType.NONE,
     val attachments: List<TaskAttachmentEntity> = emptyList(),
     val pendingAttachmentUris: List<Uri> = emptyList(),
+    val pendingDeleteAttachmentIds: Set<Long> = emptySet(),
+    val originalDueDateTime: Long? = null,
+    val originalReminderTime: Long? = null,
 
     // Tên file bị trùng. Fragment dùng giá trị này để hiện dialog một lần.
     val duplicateAttachmentFileName: String? = null,
@@ -189,55 +192,14 @@ class TaskFormViewModel(
                     return@launch
                 }
 
-                // EDIT TASK: đã có taskId -> lưu DB ngay
-                if (currentState.taskId > 0L) {
-
-                    try {
-
-                        val newId =
-                            attachmentRepository.addAttachment(
-                                attachment
-                            )
-
-                        val latestState =
-                            _formState.value
-
-                        _formState.value =
-                            latestState.copy(
-                                attachments =
-                                    latestState.attachments +
-                                        attachment.copy(id = newId),
-                                duplicateAttachmentFileName = null,
-                                errorMessage = null
-                            )
-
-                    } catch (e: Exception) {
-
-                        _formState.value =
-                            _formState.value.copy(
-                                errorMessage =
-                                    "Failed to add attachment: ${e.message}"
-                            )
-                    }
-
-                } else {
-
-                    // CREATE TASK: chỉ giữ tạm, lưu khi Save
-                    val latestState =
-                        _formState.value
-
-                    _formState.value =
-                        latestState.copy(
-                            attachments =
-                                latestState.attachments + attachment,
-
-                            pendingAttachmentUris =
-                                latestState.pendingAttachmentUris + uri,
-
-                            duplicateAttachmentFileName = null,
-                            errorMessage = null
-                        )
-                }
+                // Create and edit both keep new files pending until Save.
+                val latestState = _formState.value
+                _formState.value = latestState.copy(
+                    attachments = latestState.attachments + attachment.copy(id = 0L),
+                    pendingAttachmentUris = latestState.pendingAttachmentUris + uri,
+                    duplicateAttachmentFileName = null,
+                    errorMessage = null
+                )
 
             } catch (e: Exception) {
 
@@ -270,36 +232,13 @@ class TaskFormViewModel(
 
     val state = _formState.value
 
-    // Attachment đã lưu DB
+    // Existing attachments are only marked for deletion until Save.
     if (attachment.id > 0L) {
-
-        viewModelScope.launch {
-
-            try {
-
-                attachmentRepository.deleteAttachment(
-                    attachment.id
-                )
-
-                _formState.value =
-                    _formState.value.copy(
-                        attachments =
-                            _formState.value.attachments
-                                .filterNot {
-                                    it.id == attachment.id
-                                },
-                        errorMessage = null
-                    )
-
-            } catch (e: Exception) {
-
-                _formState.value =
-                    _formState.value.copy(
-                        errorMessage =
-                            "Failed to remove attachment: ${e.message}"
-                    )
-            }
-        }
+        _formState.value = state.copy(
+            attachments = state.attachments.filterNot { it.id == attachment.id },
+            pendingDeleteAttachmentIds = state.pendingDeleteAttachmentIds + attachment.id,
+            errorMessage = null
+        )
 
     } else {
 
@@ -354,7 +293,9 @@ class TaskFormViewModel(
                         priority = task.priority,
                         status = task.status,
                         reminderTime = task.reminderTime,
-                        recurrenceType = task.recurrenceType
+                        recurrenceType = task.recurrenceType,
+                        originalDueDateTime = task.dueDateTime,
+                        originalReminderTime = task.reminderTime
                     )
 
             } catch (e: Exception) {
@@ -380,89 +321,8 @@ class TaskFormViewModel(
         // Validation
         // ─────────────────────────────────────────────────────────
 
-        if (state.title.isBlank()) {
-
-            _formState.value =
-                state.copy(
-                    errorMessage = "Title is required"
-                )
-
-            return
-        }
-
-        if (state.description.isBlank()) {
-
-            _formState.value =
-                state.copy(
-                    errorMessage = "Description is required"
-                )
-
-            return
-        }
-
-        /*
-         * Quan trọng cho Project Timeline:
-         *
-         * Start Date phải nằm trước Due Date.
-         */
-        if (state.startDateTime >= state.dueDateTime) {
-
-            _formState.value =
-                state.copy(
-                    errorMessage =
-                        "Start date must be before the due date"
-                )
-
-            return
-        }
-
-        /*
-         * Giữ validation hiện tại của project.
-         */
-        if (state.dueDateTime <= System.currentTimeMillis()) {
-
-            _formState.value =
-                state.copy(
-                    errorMessage =
-                        "Due date must be in the future"
-                )
-
-            return
-        }
-
-        /*
-         * Reminder phải nằm trong tương lai.
-         */
-        if (
-            state.status != TaskStatus.COMPLETED &&
-            state.reminderTime != null &&
-            state.reminderTime <= System.currentTimeMillis()
-        ) {
-
-            _formState.value =
-                state.copy(
-                    errorMessage =
-                        "Reminder time must be in the future"
-                )
-
-            return
-        }
-
-        /*
-         * Reminder không được sau deadline.
-         */
-        if (
-            state.status != TaskStatus.COMPLETED &&
-            state.reminderTime != null &&
-            state.reminderTime > state.dueDateTime
-        ) {
-
-            _formState.value =
-                state.copy(
-                    errorMessage =
-                        "Reminder time cannot be after the due date"
-                )
-
+        TaskFormValidator.validate(state)?.let { validationError ->
+            _formState.value = state.copy(errorMessage = validationError)
             return
         }
 
@@ -639,8 +499,19 @@ class TaskFormViewModel(
                                 System.currentTimeMillis()
                         )
 
+                    val pendingAttachmentManager = PendingAttachmentManager(
+                        attachmentRepository
+                    )
+                    val newAttachments = pendingAttachmentManager.preparePendingAttachments(
+                        context = context,
+                        pendingUris = state.pendingAttachmentUris,
+                        taskId = state.taskId
+                    )
+
                     repository.updateTask(
-                        updatedTask
+                        task = updatedTask,
+                        newAttachments = newAttachments,
+                        pendingDeleteAttachmentIds = state.pendingDeleteAttachmentIds
                     )
 
                     // Hủy alarm cũ

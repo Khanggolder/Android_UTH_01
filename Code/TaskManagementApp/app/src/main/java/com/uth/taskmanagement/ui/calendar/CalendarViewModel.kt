@@ -6,7 +6,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.uth.taskmanagement.R
-import com.uth.taskmanagement.data.model.RecurrenceType
 import com.uth.taskmanagement.data.model.TaskEntity
 import com.uth.taskmanagement.data.model.TaskStatus
 import com.uth.taskmanagement.data.repository.TaskRepository
@@ -22,7 +21,6 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
-import java.util.Calendar
 
 class CalendarViewModel(private val repo: TaskRepository) : ViewModel() {
 
@@ -53,7 +51,13 @@ class CalendarViewModel(private val repo: TaskRepository) : ViewModel() {
         allTasks
             .flatMap { task ->
                 buildList {
-                    findOccurrenceInRange(task, dayStart, dayEnd)?.let(::add)
+                    addAll(
+                        CalendarOccurrenceCalculator.occurrencesInRange(
+                            task,
+                            dayStart,
+                            dayEnd
+                        )
+                    )
                     task.reminderTime
                         ?.takeIf { !task.isCompleted && it in dayStart..dayEnd }
                         ?.let { reminderTime ->
@@ -100,30 +104,6 @@ class CalendarViewModel(private val repo: TaskRepository) : ViewModel() {
             }
         }
     }
-    private fun findOccurrenceInRange(
-        task: TaskEntity,
-        rangeStart: Long,
-        rangeEnd: Long
-    ): TaskOccurrence? {
-        if (task.recurrenceType == RecurrenceType.NONE || task.isCompleted) {
-            return if (task.dueDateTime in rangeStart..rangeEnd) {
-                TaskOccurrence(task, task.dueDateTime)
-            } else null
-        }
-
-        var current = task.dueDateTime
-        var safeGuard = 0
-
-        while (current < rangeStart && safeGuard < 1000) {
-            current = nextOccurrence(current, task.recurrenceType)
-            safeGuard++
-        }
-
-        return if (current in rangeStart..rangeEnd) {
-            TaskOccurrence(task, current)
-        } else null
-    }
-
     private fun buildMonthGrid(
         month: YearMonth,
         selected: LocalDate,
@@ -132,56 +112,60 @@ class CalendarViewModel(private val repo: TaskRepository) : ViewModel() {
         val zone = ZoneId.systemDefault()
         val now = System.currentTimeMillis()
 
-        val tasksByDate: Map<LocalDate, List<TaskEntity>> = allTasks.groupBy { task ->
-            java.time.Instant.ofEpochMilli(task.dueDateTime).atZone(zone).toLocalDate()
-        }
-
         val firstOfMonth = month.atDay(1)
         val gridStart = firstOfMonth.minusDays(
             (firstOfMonth.dayOfWeek.value - DayOfWeek.MONDAY.value).toLong()
         )
         val totalCells = 42 // co dinh 6 hang x 7 cot cho moi thang, tranh lich nhay so hang
+        val gridEnd = gridStart.plusDays((totalCells - 1).toLong())
+        val rangeStart = gridStart.atStartOfDay(zone).toInstant().toEpochMilli()
+        val rangeEnd = gridEnd.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli() - 1
+        val occurrencesByDate = allTasks
+            .flatMap { task ->
+                CalendarOccurrenceCalculator.occurrencesInRange(task, rangeStart, rangeEnd)
+            }
+            .groupBy { occurrence ->
+                java.time.Instant.ofEpochMilli(occurrence.occurrenceDateTime)
+                    .atZone(zone)
+                    .toLocalDate()
+            }
 
         return (0 until totalCells).map { offset ->
             val date = gridStart.plusDays(offset.toLong())
-            val tasksOfDay = tasksByDate[date].orEmpty()
+            val occurrencesOfDay = occurrencesByDate[date].orEmpty()
             CalendarDay(
                 date = date,
                 isCurrentMonth = YearMonth.from(date) == month,
                 isSelected = date == selected,
-                dotColorRes = dotColorForDay(tasksOfDay, now)
+                dotColorRes = dotColorForDay(occurrencesOfDay, now)
             )
         }
     }
 
-    private fun dotColorForDay(tasksOfDay: List<TaskEntity>, currentTime: Long): Int? {
-        if (tasksOfDay.isEmpty()) return null
+    private fun dotColorForDay(
+        occurrencesOfDay: List<TaskOccurrence>,
+        currentTime: Long
+    ): Int? {
+        if (occurrencesOfDay.isEmpty()) return null
 
-        val hasOverdue = tasksOfDay.any { !it.isCompleted && it.dueDateTime < currentTime }
+        val hasOverdue = occurrencesOfDay.any {
+            !it.task.isCompleted && it.occurrenceDateTime < currentTime
+        }
         if (hasOverdue) return R.color.timeline_overdue
 
-        val hasDueSoon = tasksOfDay.any {
-            !it.isCompleted &&
-                    it.dueDateTime >= currentTime &&
-                    it.dueDateTime - currentTime <= SOON_WINDOW_MILLIS
+        val hasDueSoon = occurrencesOfDay.any {
+            !it.task.isCompleted &&
+                    it.occurrenceDateTime >= currentTime &&
+                    it.occurrenceDateTime - currentTime <= SOON_WINDOW_MILLIS
         }
         if (hasDueSoon) return R.color.timeline_pending
 
-        val allCompleted = tasksOfDay.all { it.status == TaskStatus.COMPLETED || it.isCompleted }
+        val allCompleted = occurrencesOfDay.all {
+            it.task.status == TaskStatus.COMPLETED || it.task.isCompleted
+        }
         if (allCompleted) return R.color.timeline_completed
 
         return R.color.timeline_in_progress
-    }
-
-    private fun nextOccurrence(current: Long, type: RecurrenceType): Long {
-        val cal = Calendar.getInstance().apply { timeInMillis = current }
-        when (type) {
-            RecurrenceType.DAILY -> cal.add(Calendar.DAY_OF_MONTH, 1)
-            RecurrenceType.WEEKLY -> cal.add(Calendar.DAY_OF_MONTH, 7)
-            RecurrenceType.MONTHLY -> cal.add(Calendar.MONTH, 1)
-            RecurrenceType.NONE -> {}
-        }
-        return cal.timeInMillis
     }
 
     companion object {

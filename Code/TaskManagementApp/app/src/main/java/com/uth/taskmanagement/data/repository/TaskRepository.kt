@@ -1,6 +1,9 @@
 package com.uth.taskmanagement.data.repository
 
+import androidx.room.withTransaction
+import com.uth.taskmanagement.data.local.TaskDatabase
 import com.uth.taskmanagement.data.local.TaskDao
+import com.uth.taskmanagement.data.model.TaskAttachmentEntity
 import com.uth.taskmanagement.data.model.TaskEntity
 import com.uth.taskmanagement.data.model.TaskPriority
 import com.uth.taskmanagement.data.model.TaskStatus
@@ -8,7 +11,8 @@ import kotlinx.coroutines.flow.Flow
 
 class TaskRepository(
     private val taskDao: TaskDao,
-    private val attachmentRepository: AttachmentRepository? = null
+    private val attachmentRepository: AttachmentRepository? = null,
+    private val database: TaskDatabase? = null
 ) {
 
     fun observeAllTasks(): Flow<List<TaskEntity>> =
@@ -43,6 +47,42 @@ class TaskRepository(
         taskDao.updateTask(
             task.copy(updatedAt = System.currentTimeMillis())
         )
+    }
+
+    suspend fun updateTask(
+        task: TaskEntity,
+        newAttachments: List<TaskAttachmentEntity>,
+        pendingDeleteAttachmentIds: Set<Long>
+    ) {
+        if (newAttachments.isEmpty() && pendingDeleteAttachmentIds.isEmpty()) {
+            updateTask(task)
+            return
+        }
+
+        require(task.id > 0) { "Task ID must be greater than 0 when updating." }
+        val attachments = requireNotNull(attachmentRepository) {
+            "Attachment repository is required for attachment changes."
+        }
+        val roomDatabase = requireNotNull(database) {
+            "Task database is required for transactional attachment changes."
+        }
+        val removals = pendingDeleteAttachmentIds
+            .mapNotNull { attachments.getAttachmentById(it) }
+            .filter { it.taskId == task.id }
+        val removalIds = removals.map { it.id }
+        val stagedDeletion = attachments.stageOwnedFiles(removals)
+
+        try {
+            roomDatabase.withTransaction {
+                taskDao.updateTask(task.copy(updatedAt = System.currentTimeMillis()))
+                if (newAttachments.isNotEmpty()) attachments.addAttachments(newAttachments)
+                attachments.deleteAttachmentRecords(removalIds)
+            }
+            attachments.commitFileDeletion(stagedDeletion)
+        } catch (error: Exception) {
+            attachments.rollbackFileDeletion(stagedDeletion)
+            throw error
+        }
     }
 
     suspend fun deleteTask(task: TaskEntity) =
@@ -117,6 +157,6 @@ class TaskRepository(
         taskDao.replaceAllTasks(tasks)
     }
 
-    suspend fun updateReminderTime(taskId: Long, reminderTime: Long) =
+    suspend fun updateReminderTime(taskId: Long, reminderTime: Long?) =
         taskDao.updateReminderTime(taskId, reminderTime)
 }
