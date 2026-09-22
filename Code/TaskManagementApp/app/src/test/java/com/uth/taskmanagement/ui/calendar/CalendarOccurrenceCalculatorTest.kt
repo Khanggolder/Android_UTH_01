@@ -23,9 +23,14 @@ class CalendarOccurrenceCalculatorTest {
     }
 
     @Test
-    fun weeklyRecurrence_generatesEverySevenDays() {
+    fun weeklyRecurrenceWithoutReminder_generatesEverySevenDays() {
         val start = millis(2026, Calendar.SEPTEMBER, 1)
-        val occurrences = occurrences(start, RecurrenceType.WEEKLY, 22)
+        val task = task(start, RecurrenceType.WEEKLY).copy(reminderTime = null)
+        val occurrences = CalendarOccurrenceCalculator.occurrencesInRange(
+            task,
+            start,
+            millis(2026, Calendar.SEPTEMBER, 22, 23, 59)
+        )
 
         assertEquals(
             listOf(1, 8, 15, 22),

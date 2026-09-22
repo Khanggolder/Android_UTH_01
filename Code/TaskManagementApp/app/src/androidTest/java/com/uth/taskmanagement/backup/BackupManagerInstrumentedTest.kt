@@ -158,6 +158,49 @@ class BackupManagerInstrumentedTest {
     }
 
     @Test
+    fun jsonAndZipBackup_preserveWeeklyRepeatWithoutReminder() = runBlocking {
+        val now = System.currentTimeMillis()
+        taskRepository.insertTask(
+            TaskEntity(
+                title = "Weekly without reminder",
+                description = "Description",
+                startDateTime = now + 60_000L,
+                dueDateTime = now + 120_000L,
+                recurrenceType = RecurrenceType.WEEKLY,
+                reminderTime = null
+            )
+        )
+
+        for (isZip in listOf(false, true)) {
+            val backupFile = File(testDirectory, if (isZip) "weekly.zip" else "weekly.json")
+            if (isZip) {
+                backupManager.exportTasks(Uri.fromFile(backupFile)).getOrThrow()
+            } else {
+                backupManager.exportTaskData(Uri.fromFile(backupFile)).getOrThrow()
+            }
+
+            val backupJson = if (isZip) {
+                ZipFile(backupFile).use { zip ->
+                    zip.getInputStream(zip.getEntry("backup.json"))
+                        .bufferedReader().use { it.readText() }
+                }
+            } else {
+                backupFile.readText()
+            }
+            val exportedTask = JSONObject(backupJson).getJSONArray("tasks").getJSONObject(0)
+            assertEquals("WEEKLY", exportedTask.getString("recurrenceType"))
+            assertTrue(exportedTask.isNull("reminderTime"))
+
+            database.replaceBackupData(emptyList(), emptyList())
+            backupManager.restoreTasks(Uri.fromFile(backupFile)).getOrThrow()
+
+            val restoredTask = taskRepository.getAllTasks().single()
+            assertEquals(RecurrenceType.WEEKLY, restoredTask.recurrenceType)
+            assertEquals(null, restoredTask.reminderTime)
+        }
+    }
+
+    @Test
     fun portableExport_rejectsAttachmentLargerThanSingleEntryLimit() = runBlocking {
         val taskId = insertTask("Oversized attachment")
         addExternalAttachment(
