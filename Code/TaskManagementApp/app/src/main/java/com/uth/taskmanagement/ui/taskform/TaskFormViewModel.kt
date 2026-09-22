@@ -384,14 +384,7 @@ class TaskFormViewModel(
                                 reminderTime,
 
                             recurrenceType =
-                                if (reminderTime != null) {
-
-                                    state.recurrenceType
-
-                                } else {
-
-                                    RecurrenceType.NONE
-                                },
+                                state.recurrenceType,
 
                             createdByUserId =
                                 UserEntity.DEFAULT_USER_ID,
@@ -486,14 +479,7 @@ class TaskFormViewModel(
                                 reminderTime,
 
                             recurrenceType =
-                                if (reminderTime != null) {
-
-                                    state.recurrenceType
-
-                                } else {
-
-                                    RecurrenceType.NONE
-                                },
+                                state.recurrenceType,
 
                             updatedAt =
                                 System.currentTimeMillis()
@@ -705,8 +691,6 @@ class TaskFormViewModel(
         _formState.value =
             state.copy(
                 reminderTime = null,
-                recurrenceType =
-                    RecurrenceType.NONE,
                 errorMessage = null
             )
     }

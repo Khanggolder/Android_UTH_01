@@ -850,16 +850,6 @@ attachmentAdapter =
             binding.tvClearReminder.visibility =
                 View.VISIBLE
 
-            binding.labelRecurrence.visibility =
-                View.VISIBLE
-
-            binding.recurrenceGroup.visibility =
-                View.VISIBLE
-
-            updateRecurrenceButtons(
-                recurrenceType
-            )
-
         } else {
 
             binding.tvReminderTime.text =
@@ -875,12 +865,9 @@ attachmentAdapter =
             binding.tvClearReminder.visibility =
                 View.GONE
 
-            binding.labelRecurrence.visibility =
-                View.GONE
-
-            binding.recurrenceGroup.visibility =
-                View.GONE
         }
+
+        updateRecurrenceButtons(recurrenceType)
     }
 
     // ─────────────────────────────────────────────────────────────

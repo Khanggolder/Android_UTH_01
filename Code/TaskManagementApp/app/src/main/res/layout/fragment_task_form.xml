@@ -31,7 +31,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:layout_marginBottom="24dp"
-            android:text="Fill in the details and set a reminder"
+            android:text="Fill in the task details"
             android:textColor="@color/text_secondary"
             android:textSize="14sp" />
 
@@ -435,16 +435,14 @@
             android:text="Repeat"
             android:textAllCaps="true"
             android:textColor="@color/text_secondary"
-            android:textSize="12sp"
-            android:visibility="gone" />
+            android:textSize="12sp" />
 
         <LinearLayout
             android:id="@+id/recurrenceGroup"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="28dp"
-            android:orientation="horizontal"
-            android:visibility="gone">
+            android:orientation="horizontal">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnRecurrenceNone"

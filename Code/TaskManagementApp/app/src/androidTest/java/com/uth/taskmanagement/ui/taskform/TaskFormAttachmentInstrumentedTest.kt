@@ -11,9 +11,11 @@ import com.uth.taskmanagement.attachment.AttachmentStorage
 import com.uth.taskmanagement.attachment.AttachmentFileHelper
 import com.uth.taskmanagement.data.local.TaskDatabase
 import com.uth.taskmanagement.data.model.TaskEntity
+import com.uth.taskmanagement.data.model.RecurrenceType
 import com.uth.taskmanagement.data.model.UserEntity
 import com.uth.taskmanagement.data.repository.AttachmentRepository
 import com.uth.taskmanagement.data.repository.TaskRepository
+import com.uth.taskmanagement.recurrence.RecurrenceScheduler
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -198,6 +200,89 @@ class TaskFormAttachmentInstrumentedTest {
             originalAttachmentId,
             attachmentRepository.getAttachments(taskId).single().id
         )
+    }
+
+    @Test
+    fun createWeeklyAndMonthlyWithoutReminder_preservesRepeatWithoutScheduling() = runBlocking {
+        for (repeat in listOf(RecurrenceType.WEEKLY, RecurrenceType.MONTHLY)) {
+            val viewModel = createViewModel()
+            configureValidTask(viewModel, "$repeat without reminder")
+            viewModel.setRecurrenceType(repeat)
+
+            viewModel.saveTask()
+            val savedState = withTimeout(5_000) {
+                viewModel.formState.first { it.isSaved || it.errorMessage != null }
+            }
+            assertTrue(savedState.errorMessage, savedState.isSaved)
+
+            val task = taskRepository.getAllTasks().single { it.title == "$repeat without reminder" }
+            assertEquals(repeat, task.recurrenceType)
+            assertEquals(null, task.reminderTime)
+            assertEquals(null, RecurrenceScheduler.scheduleReminderForTask(context, task))
+        }
+        assertTrue(database.taskDao().getActiveReminderTasks().isEmpty())
+    }
+
+    @Test
+    fun createReminderWithNoneAndDailyRepeat_preservesBothFields() = runBlocking {
+        for (repeat in listOf(RecurrenceType.NONE, RecurrenceType.DAILY)) {
+            val viewModel = createViewModel()
+            configureValidTask(viewModel, "$repeat with reminder")
+            val reminderTime = System.currentTimeMillis() + 90_000L
+            viewModel.setRecurrenceType(repeat)
+            viewModel.setReminderTime(reminderTime)
+
+            viewModel.saveTask()
+            val savedState = withTimeout(5_000) {
+                viewModel.formState.first { it.isSaved || it.errorMessage != null }
+            }
+            assertTrue(savedState.errorMessage, savedState.isSaved)
+
+            val task = taskRepository.getAllTasks().single { it.title == "$repeat with reminder" }
+            assertEquals(repeat, task.recurrenceType)
+            assertEquals(reminderTime, task.reminderTime)
+            RecurrenceScheduler.cancelAlarm(context, task.id)
+        }
+    }
+
+    @Test
+    fun clearReminder_keepsWeeklyRepeat() {
+        val viewModel = createViewModel()
+        viewModel.setRecurrenceType(RecurrenceType.WEEKLY)
+        viewModel.setReminderTime(System.currentTimeMillis() + 60_000L)
+
+        viewModel.clearReminder()
+
+        assertEquals(RecurrenceType.WEEKLY, viewModel.formState.value.recurrenceType)
+        assertEquals(null, viewModel.formState.value.reminderTime)
+    }
+
+    @Test
+    fun editMonthlyTaskWithoutReminder_keepsRepeat() = runBlocking {
+        val now = System.currentTimeMillis()
+        val taskId = taskRepository.insertTask(
+            TaskEntity(
+                title = "Monthly task",
+                description = "Description",
+                startDateTime = now + 60_000L,
+                dueDateTime = now + 120_000L,
+                recurrenceType = RecurrenceType.MONTHLY
+            )
+        )
+        val viewModel = loadTask(taskId)
+        assertEquals(RecurrenceType.MONTHLY, viewModel.formState.value.recurrenceType)
+        viewModel.setTitle("Edited monthly task")
+
+        viewModel.saveTask()
+        val savedState = withTimeout(5_000) {
+            viewModel.formState.first { it.isSaved || it.errorMessage != null }
+        }
+        assertTrue(savedState.errorMessage, savedState.isSaved)
+
+        val task = taskRepository.getTaskById(taskId)!!
+        assertEquals("Edited monthly task", task.title)
+        assertEquals(RecurrenceType.MONTHLY, task.recurrenceType)
+        assertEquals(null, task.reminderTime)
     }
 
     private fun createViewModel(): TaskFormViewModel {
