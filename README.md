@@ -1,101 +1,264 @@
-# Android_UTH_01 - TaskManagementApp
+# Android_UTH_01 - Task Management App
 
-## Thanh vien
+Ứng dụng Android hỗ trợ quản lý công việc cá nhân, lưu dữ liệu trực tiếp trên thiết bị và có thể sử dụng khi không có kết nối mạng.
 
-| STT | MSSV | Ho va ten | Vai tro |
+## Thành viên
+
+| STT | MSSV | Họ và tên | Vai trò |
 |---:|---|---|---|
-| 1 | 083205012180 | Nguyen Duy Khang | Nhom truong |
-| 2 | 066205002941 | Nguyen Hoai Nam | Thanh vien |
-| 3 | 077205003436 | Nguyen Hoang Minh Khoi | Thanh vien |
-| 4 | 080206016469 | Le Tran Dang Khoi | Thanh vien |
-| 5 | 049206013293 | Dang Lam Truong | Thanh vien |
-| 6 | 079205031894 | Nguyen Thanh Dat | Thanh vien |
+| 1 | 083205012180 | Nguyễn Duy Khang | Nhóm trưởng |
+| 2 | 066205002941 | Nguyễn Hoài Nam | Thành viên |
+| 3 | 077205003436 | Nguyễn Hoàng Minh Khôi | Thành viên |
+| 4 | 080206016469 | Lê Trần Đăng Khôi | Thành viên |
+| 5 | 049206013293 | Đặng Lam Trường | Thành viên |
+| 6 | 079205031894 | Nguyễn Thành Đạt | Thành viên |
 
-## Gioi thieu
+## Giới thiệu
 
-TaskManagementApp la ung dung Android ho tro quan ly cong viec ca nhan. Repo hien tai da co app shell chinh, navigation va cac module nen tang de team tiep tuc hoan thien chuc nang.
+Task Management App được xây dựng cho đề tài `ANDROID_UTH_01` của môn Lập trình thiết bị di động.
 
-## Cong nghe da chot
+Ứng dụng tập trung vào các chức năng quản lý công việc cá nhân như tạo và cập nhật task, lọc và sắp xếp công việc, nhắc việc, lịch, timeline, khóa ứng dụng bằng PIN, file đính kèm và backup/restore dữ liệu.
+
+Dữ liệu được lưu cục bộ trên thiết bị bằng Room. Phiên bản hiện tại không sử dụng backend, cloud hoặc hệ thống đăng nhập nhiều tài khoản.
+
+## Kiến trúc hệ thống
+
+- Kiến trúc: MVVM + Repository
+- Giao diện: XML + ViewBinding
+- Lưu trữ dữ liệu: Room Database
+- Lưu cấu hình bảo mật: DataStore
+- Quản lý trạng thái: ViewModel + StateFlow
+- Nhắc việc: AlarmManager + BroadcastReceiver + NotificationManager
+- File và backup: Storage Access Framework + FileProvider
+- Mô hình hoạt động: Local/offline Android application
+- Protocol: Không sử dụng
+- Port mặc định: Không sử dụng
+- Cấu trúc message: Không sử dụng
+
+Room Database hiện ở **version 5**, gồm các entity chính:
+
+- `TaskEntity`
+- `UserEntity`
+- `TaskAttachmentEntity`
+
+Các migration hiện có:
+
+- `1 -> 2`: thêm `startDateTime`
+- `2 -> 3`: thêm bảng user, thông tin user của task và attachment
+- `3 -> 4`: bổ sung thông tin quản lý file attachment
+- `4 -> 5`: bổ sung ràng buộc giữa task và assignee, đồng thời bảo toàn dữ liệu cũ
+
+## Công nghệ sử dụng
 
 - Kotlin
-- XML + ViewBinding
-- MVVM + Repository
+- Android XML
+- ViewBinding
+- MVVM
+- Repository Pattern
 - Room
 - DataStore
-- Lifecycle ViewModel, LiveData/Flow
-- AlarmManager + BroadcastReceiver
-- NotificationManager + quyen POST_NOTIFICATIONS cho Android 13+
-- JSON + Storage Access Framework
+- StateFlow / LiveData
+- AlarmManager
+- BroadcastReceiver
+- NotificationManager
+- Storage Access Framework
+- FileProvider
+- JUnit / AndroidX Test / Espresso
 
-Khong su dung Compose, Firebase, Retrofit, Hilt hoac framework phuc tap khac.
+Thông số project hiện tại:
 
-## Cau truc source code
+- `minSdk`: 26
+- `compileSdk`: 36
+- `targetSdk`: 36
+- Kotlin: 2.2.10
+- Android Gradle Plugin: 9.3.1
+- Gradle Wrapper: 9.5.0
+- JVM target: 11
+
+## Cấu trúc project
 
 ```text
-Code/TaskManagementApp/app/src/main/java/com/uth/taskmanagement/
-├── core
-├── navigation
-├── data
-│   ├── model
-│   ├── local
-│   └── repository
-├── ui
-│   ├── tasklist
-│   ├── taskform
-│   ├── calendar
-│   └── settings
-├── notification
-├── recurrence
-├── security
-├── backup
-└── utils
+Android_UTH_01/
+├── Code/
+│   └── TaskManagementApp/
+├── DOCX/
+├── Extra/
+├── PPTX/
+└── README.md
 ```
-## Clone va mo project
+
+Một số package chính trong ứng dụng:
 
 ```text
+com.uth.taskmanagement/
+├── attachment/
+├── backup/
+├── core/
+├── data/
+│   ├── local/
+│   ├── model/
+│   └── repository/
+├── notification/
+├── recurrence/
+├── security/
+├── ui/
+│   ├── attachment/
+│   ├── calendar/
+│   ├── settings/
+│   ├── taskform/
+│   ├── tasklist/
+│   └── timeline/
+└── utils/
+```
+
+## Yêu cầu môi trường
+
+- Android Studio
+- Android SDK
+- Thiết bị thật hoặc Android Emulator từ API 26 trở lên
+- JDK tương thích với Android Studio/Gradle của project
+- Git
+
+Khuyến nghị sử dụng JDK đi kèm Android Studio. Trong quá trình phát triển, nhóm sử dụng JDK 21 để chạy Gradle.
+
+## Cài đặt
+
+Clone repository:
+
+```bash
 git clone https://github.com/Khanggolder/Android_UTH_01.git
-cd Android_UTH_01
+cd Android_UTH_01/Code/TaskManagementApp
 ```
 
-Mo Android project tai thu muc:
+Mở thư mục sau bằng Android Studio:
 
 ```text
 Code/TaskManagementApp
 ```
 
-Trong Android Studio:
+Sau đó:
 
-1. Chon Open.
-2. Chon folder `Code/TaskManagementApp`.
-3. Dat Gradle user home ve `C:\Users\ad\.gradle` neu Android Studio hoi.
-4. Chon Gradle JDK/JVM version 21 hoac Embedded JDK cua Android Studio.
-5. Sync Gradle va chay app module.
+1. Chờ Android Studio hoàn tất Gradle Sync.
+2. Chọn emulator hoặc thiết bị Android.
+3. Chạy module `app`.
 
-Chay bang terminal:
+Project không yêu cầu cấu hình backend, IP hoặc port.
 
-```text
-cd Code/TaskManagementApp
-.\gradlew.bat assembleDebug
+## Hướng dẫn chạy
+
+### Android Studio
+
+1. Chọn **Open**.
+2. Mở thư mục `Code/TaskManagementApp`.
+3. Chờ Gradle Sync hoàn tất.
+4. Chọn thiết bị hoặc emulator.
+5. Nhấn **Run**.
+
+### Terminal
+
+Windows:
+
+```bat
+cd Code\TaskManagementApp
+gradlew.bat assembleDebug
 ```
 
-## Git flow cho nhom
+macOS/Linux:
 
-- Khong code truc tiep tren `main`.
-- Moi task tao mot feature branch rieng, vi du `feature/task-list-ui`.
-- Moi ngay merge `main` vao branch ca nhan de cap nhat thay doi moi.
-- Khi co conflict, uu tien lay code tu `main`, sau do them lai phan code ca nhan neu can.
-- Chi merge ve `main` khi project sync/build duoc va test passed.
-- Commit message ngan gon, noi ro module dang lam.
+```bash
+cd Code/TaskManagementApp
+./gradlew assembleDebug
+```
 
-## Cau hinh Git
+APK debug được tạo trong:
 
-Khong commit password, secret hoac file cau hinh may ca nhan. File `local.properties`, build output va cache IDE/Gradle da duoc bo qua trong Git.
+```text
+Code/TaskManagementApp/app/build/outputs/apk/debug/
+```
 
-## Chuc nang du kien
+## Cấu hình và quyền
 
-- [ ] Quan ly danh sach cong viec
-- [ ] Them, sua, xoa cong viec
-- [ ] Phan loai va theo doi trang thai cong viec
-- [ ] Nhac viec bang alarm va notification
-- [ ] Cau hinh ung dung bang DataStore
-- [ ] Backup/restore bang JSON va Storage Access Framework
+Ứng dụng không cần IP, port hoặc API key.
+
+Một số quyền/chức năng hệ thống được sử dụng:
+
+- `POST_NOTIFICATIONS`
+- `RECEIVE_BOOT_COMPLETED`
+- Exact alarm
+- Storage Access Framework
+- FileProvider
+
+## Chức năng
+
+- [x] Tạo, sửa và xóa công việc
+- [x] Đánh dấu công việc hoàn thành
+- [x] Lưu title, description, start time, due time, priority và status
+- [x] Lọc task theo status và priority
+- [x] Sắp xếp task theo thời hạn
+- [x] Hiển thị empty state, overdue state và error state
+- [x] Nhắc việc bằng alarm và notification
+- [x] Recurring reminder theo ngày, tuần và tháng
+- [x] Khôi phục reminder sau reboot hoặc thay đổi thời gian/timezone
+- [x] Calendar theo ngày
+- [x] Project Timeline
+- [x] PIN lock
+- [x] Không lưu PIN dạng plaintext
+- [x] File đính kèm cho task
+- [x] Export/restore JSON
+- [x] Portable backup bằng ZIP kèm attachment
+- [x] Room Database migration
+- [x] Chuẩn bị data model cho user/assignee
+
+Phần user/assignee hiện mới ở mức data model và repository, chưa phải hệ thống multi-user hoàn chỉnh.
+
+## Kiểm thử
+
+Bộ kiểm thử hiện tại có **56 test case**, từ `TC-01` đến `TC-56`.
+
+Các nhóm kiểm thử chính gồm:
+
+- CRUD và validation
+- Filter, sort và UI state
+- Notification và recurring reminder
+- Room persistence và migration
+- Calendar
+- Timeline
+- PIN security
+- Backup/restore
+- Attachment
+- Integration và regression
+- Performance
+
+Trong bảng tổng hợp testcase hiện tại, cả 56 testcase đều đã được ghi nhận `Pass` ở 3 lần chạy.
+
+Ngoài manual test, repository cũng có unit test và instrumented test cho Room, migration, backup, attachment và một số business rule chính.
+
+Bằng chứng kiểm thử được lưu tại:
+
+```text
+Extra/
+```
+
+## Git workflow
+
+- Không làm việc trực tiếp trên `main`.
+- Mỗi chức năng hoặc task nên có branch riêng.
+- Trước khi merge cần pull thay đổi mới nhất và xử lý conflict.
+- Chỉ merge khi project build được và chức năng đã được test.
+- Mỗi thành viên commit bằng tài khoản cá nhân.
+- Commit message cần mô tả rõ thay đổi, tránh dùng các nội dung chung chung như `update`, `fix` hoặc `final`.
+
+## Demo
+
+- Video: https://youtu.be/8bWJepTKTuU?si=_PA49gNK26JoaCDq
+- Slide: `PPTX/`
+- Báo cáo: `DOCX/`
+- Test evidence: `Extra/`
+
+## Giới hạn hiện tại
+
+- Ứng dụng hoạt động chủ yếu với dữ liệu cục bộ.
+- Chưa có backend hoặc cloud sync.
+- Chưa có đăng nhập và quản lý nhiều tài khoản.
+- User/assignee mới được chuẩn bị ở tầng dữ liệu, chưa có luồng giao việc nhiều người hoàn chỉnh.
+- Notification và exact alarm còn phụ thuộc vào quyền và chính sách của từng phiên bản Android.
