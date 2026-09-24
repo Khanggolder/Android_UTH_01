@@ -6,12 +6,12 @@
 
 | STT | MSSV | Họ và tên | Vai trò |
 |---:|---|---|---|
-| 1 | 083205012180 | Nguyễn Duy Khang | Nhóm trưởng |
-| 2 | 066205002941 | Nguyễn Hoài Nam | Thành viên |
-| 3 | 077205003436 | Nguyễn Hoàng Minh Khôi | Thành viên |
-| 4 | 080206016469 | Lê Trần Đăng Khôi | Thành viên |
-| 5 | 049206013293 | Đặng Lam Trường | Thành viên |
-| 6 | 079205031894 | Nguyễn Thành Đạt | Thành viên |
+| 1 | 083205012180 | Nguyễn Duy Khang(NT) | Cross-module Coding • Bug Fixing • Code Review |
+| 2 | 066205002941 | Nguyễn Hoài Nam | Entity • DAO • Migration • Project Timeline |
+| 3 | 077205003436 | Nguyễn Hoàng Minh Khôi | Task Form • CRUD • Validation |
+| 4 | 080206016469 | Lê Trần Đăng Khôi | Filter • Sort • Empty / Overdue / Error |
+| 5 | 049206013293 | Đặng Lam Trường | Notification • Recurring • Receiver |
+| 6 | 079205031894 | Nguyễn Thành Đạt | Calendar • Security • Backup / Restore |
 
 ## Giới thiệu
 
